@@ -1,15 +1,25 @@
-const express = require('express');
-const { createServer } = require('node:http');
-const { join } = require('node:path');
-const { Server } = require('socket.io');
-
+const express = require("express");
+const http = require("http");
+const path = require("path");
+const { Server } = require("socket.io");
 const app = express();
-const server = createServer(app);
-const io = new Server(server);
-
-app.get('/', (req, res) => {
-  res.sendFile(join(__dirname, 'index.html'));
+const port = 3000;
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+  },
 });
+
+
+app.use(express.static(path.join(__dirname, "client")));
+
+app.get("/", (req, res) => {
+  res.sendFile("/index.html");
+});
+
+
+
 
 io.on('connection', (socket) => {
   console.log('a user connected');
