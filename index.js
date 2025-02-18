@@ -21,9 +21,83 @@ app.get("/", (req, res) => {
 
 
 
-io.on('connection', (socket) => {
-  console.log('a user connected');
+const rooms = new Set(["0", "1", "2"]);
+const roomsInfo = [
+  {
+    roomNum: 1,
+    users: new Set(),
+  },
+  {
+    roomNum: 2,
+    users: new Set(),
+  },
+  {
+    roomNum: 3,
+    users: new Set(),
+  },
+];
+
+io.on("connection", (socket) => {
+  console.log(
+    `User connected: ${socket.handshake.address}, ${socket.handshake.time}`
+  );
+
+  socket.on("save username", (data) => {
+    socket.data.user = data;
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`${socket.data.user} disconnected`);
+    if (socket.data.room) {
+      roomsInfo[socket.data.room].users.delete(socket.data.user);
+      socket.leave(socket.data.room);
+      io.to(socket.data.room).emit("update room users", [
+        ...roomsInfo[socket.data.room].users,
+      ]);
+    }
+  });
+
+  socket.on("chat", (data) => {
+    if (socket.data.room) {
+      io.to(socket.data.room).emit("chat", data);
+    }
+  });
+
+  socket.on("join room", (data) => {
+    if (rooms.has(data.roomNum)) {
+      if (socket.data.room) {
+        roomsInfo[socket.data.room].users.delete(socket.data.user);
+        socket.leave(socket.data.room);
+        io.to(socket.data.room).emit("update room users", [
+          ...roomsInfo[socket.data.room].users,
+        ]);
+      }
+      roomsInfo[data.roomNum].users.add(socket.data.user);
+      socket.join(data.roomNum);
+      socket.data.room = data.roomNum;
+      console.log(roomsInfo[data.roomNum].users);
+      const payload = {
+        message: "Room joined",
+        status: 1,
+        roomNum: data.roomNum,
+      };
+      io.to(data.roomNum).emit("update room users", [
+        ...roomsInfo[data.roomNum].users,
+      ]);
+      return socket.emit("join room", payload);
+    }
+    const payload = {
+      message: "Room does not exist",
+      status: 0,
+    };
+    socket.emit("join room", payload);
+  });
+
+  socket.on("get rooms", () => {
+    socket.emit("get rooms", [...rooms]);
+  });
 });
+
 
 server.listen(3000, () => {
   console.log('server running at http://localhost:3000');
