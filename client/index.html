@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Socket.IO chat</title>
+    <title>Bang</title>
     <style>
 
     </style>
@@ -12,17 +12,16 @@
         <p>Available rooms</p>
     </div>
     <p id="roomInfo">Room: </p>
+    <input type="text" id="nameInput" placeholder="Enter username">
+    <button id="enterUsername">Enter username</button>
 
     <input type="text" id="roomInput" placeholder="Enter room">
     <button id="enterRoom">Enter room</button>
 
     <div id="users"></div>
 
-    <input type="text" id="chatInput" placeholder="Your yapping">
-    <button id="send">Send</button>
     <button id="lick">Lick</button>
 
-    <div id="chat"></div>
 
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
     <script src="./res/js/main.js"></script>

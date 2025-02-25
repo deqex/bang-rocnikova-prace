@@ -57,11 +57,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("chat", (data) => {
-    if (socket.data.room) {
-      io.to(socket.data.room).emit("chat", data);
-    }
-  });
 
   socket.on("join room", (data) => {
     if (rooms.has(data.roomNum)) {
