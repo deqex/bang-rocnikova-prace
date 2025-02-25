@@ -19,6 +19,8 @@ let numberOfCookies = 0;
 enterUsername.onclick = () => {
   username = nameInput.value;
     socket.emit("save username", username);
+    document.getElementById("nameInput").style.display="none";
+    document.getElementById("enterUsername").style.display="none";
 }
 
 window.onload = () => {
@@ -36,8 +38,14 @@ lick.onclick = () => {
 
 
 enterRoom.onclick = () => {
-  socket.emit("join room", { roomNum: roomInput.value, username: username });
+  if (username = null) {
+    
+  } else {
+      socket.emit("join room", { roomNum: roomInput.value, username: username });
   roomInput.value = "";
+  }
+  
+
 };
 
 socket.on("join room", (data) => {
