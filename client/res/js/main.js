@@ -38,14 +38,8 @@ lick.onclick = () => {
 
 
 enterRoom.onclick = () => {
-  if (username = null) {
-    
-  } else {
-      socket.emit("join room", { roomNum: roomInput.value, username: username });
+  socket.emit("join room", { roomNum: roomInput.value, username: username });
   roomInput.value = "";
-  }
-  
-
 };
 
 socket.on("join room", (data) => {
