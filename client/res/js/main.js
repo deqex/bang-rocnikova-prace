@@ -11,6 +11,9 @@ const availableRooms = document.getElementById("availableRooms");
 const nameInput = document.getElementById("nameInput");
 const enterUsername = document.getElementById("enterUsername");
 
+const createRoomInput = document.getElementById("createRoomInput");
+const createRoomButton = document.getElementById("createRoomButton");
+
 let currentRoom;
 let username;
 let numberOfCookies = 0;
@@ -23,8 +26,16 @@ enterUsername.onclick = () => {
     document.getElementById("enterUsername").style.display="none";
 }
 
+createRoomButton.onclick = () => {
+
+
+
+
+    document.getElementById("createRoomInput").style.display="none";
+    document.getElementById("createRoomButton").style.display="none";
+}
+
 window.onload = () => {
-  onUserConnect();
   socket.emit("get rooms");
 };
 
@@ -34,7 +45,6 @@ lick.onclick = () => {
     console.log(numberOfCookies);
     numberOfCookies++;
 }
-
 
 
 enterRoom.onclick = () => {
