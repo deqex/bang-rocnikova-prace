@@ -27,12 +27,15 @@ enterUsername.onclick = () => {
 }
 
 createRoomButton.onclick = () => {
-
-
-
-
-    document.getElementById("createRoomInput").style.display="none";
-    document.getElementById("createRoomButton").style.display="none";
+    const newRoomName = createRoomInput.value.trim();
+    
+    if (newRoomName) {
+        socket.emit("create room", newRoomName);
+        createRoomInput.value = "";
+        socket.emit("join room", { roomNum: newRoomName, username: username });
+    } else {
+        alert("bro enterni jmeno");
+    }
 }
 
 window.onload = () => {

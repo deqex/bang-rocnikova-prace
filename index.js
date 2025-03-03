@@ -57,6 +57,19 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("create room", (roomName) => {
+    rooms.add(roomName);
+    const createdRoom = roomName;
+    if (!roomsInfo[createdRoom]) {
+      roomsInfo[createdRoom] = {
+        roomNum: roomName,
+        users: new Set()
+      };
+    }
+    
+    console.log(`Room created: ${roomName} by ${socket.data.user}`);
+    io.emit("get rooms", [...rooms]);
+  });
 
   socket.on("join room", (data) => {
     if (rooms.has(data.roomNum)) {
@@ -67,6 +80,8 @@ io.on("connection", (socket) => {
           ...roomsInfo[socket.data.room].users,
         ]);
       }
+      
+      
       roomsInfo[data.roomNum].users.add(socket.data.user);
       socket.join(data.roomNum);
       socket.data.room = data.roomNum;
