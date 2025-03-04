@@ -1,11 +1,13 @@
 const socket = io("http://localhost:3000");
 const users = document.getElementById("users");
+const usersCount = document.getElementById("usersCount");
 const send = document.getElementById("send");
 const lick = document.getElementById("lick");
 const roomInput = document.getElementById("roomInput");
 const enterRoom = document.getElementById("enterRoom");
 const roomInfo = document.getElementById("roomInfo");
 const availableRooms = document.getElementById("availableRooms");
+const displayCookies = document.getElementById("displayCookies");
 
 
 const nameInput = document.getElementById("nameInput");
@@ -44,9 +46,8 @@ window.onload = () => {
 
 
 lick.onclick = () => {
-    console.log("click");
-    console.log(numberOfCookies);
     numberOfCookies++;
+    socket.emit("lick", numberOfCookies)
 }
 
 
@@ -69,6 +70,10 @@ socket.on("update room users", (data) => {
   data.map((user) => {
     users.innerHTML += `<p>${user}</p>`;
   });
+});
+
+socket.on("lick", (user, numberOfCookies) => {
+    displayCookies.innerHTML += `<p>${numberOfCookies}: ${user}</p>`;
 });
 
 socket.on("get rooms", (data) => {

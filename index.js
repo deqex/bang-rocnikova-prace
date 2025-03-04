@@ -107,6 +107,12 @@ io.on("connection", (socket) => {
   socket.on("get rooms", () => {
     socket.emit("get rooms", [...rooms]);
   });
+
+  socket.on("lick", (numberOfCookies) => {
+    io.emit("lick", numberOfCookies);
+    console.log(user + numberOfCookies)
+
+});
 });
 
 
