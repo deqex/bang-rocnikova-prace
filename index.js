@@ -109,8 +109,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("lick", (numberOfCookies) => {
-    io.emit("lick", numberOfCookies);
-    console.log(user + numberOfCookies)
+    let fruser = socket.data.user;
+    io.emit("get values", numberOfCookies, fruser);
+    console.log(fruser + numberOfCookies)
 
 });
 });

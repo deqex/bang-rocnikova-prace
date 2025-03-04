@@ -72,12 +72,13 @@ socket.on("update room users", (data) => {
   });
 });
 
-socket.on("lick", (user, numberOfCookies) => {
-    displayCookies.innerHTML += `<p>${numberOfCookies}: ${user}</p>`;
+socket.on("get values", (numberOfCookies, fruser) => {
+    displayCookies.innerHTML += `<p>${fruser}: ${numberOfCookies}</p>`;
+    console.log(numberOfCookies)
 });
 
 socket.on("get rooms", (data) => {
-  availableRooms.innerHTML = "<p>Available rooms</p>";
+  availableRooms.innerHTML = "<p>Available rooms</p>";  
   data.map((roomNum) => {
     availableRooms.innerHTML += `
             <p>${roomNum}</p>
