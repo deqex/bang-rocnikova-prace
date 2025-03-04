@@ -70,6 +70,9 @@ io.on("connection", (socket) => {
     }
     
     console.log(`Room created: ${roomName} by ${socket.data.user}`);
+    let roomOwner = socket.data.user 
+    socket.emit("get owner", roomOwner);
+
     io.emit("get rooms", [...rooms]);
   });
 

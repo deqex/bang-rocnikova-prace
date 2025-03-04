@@ -71,12 +71,18 @@ socket.on("join room", (data) => {
   roomInfo.innerHTML = data.message;
 });
 
-socket.on("update room users", (data) => {
+socket.on("update room users", (data, roomOwner) => {
   users.innerHTML = "";
   data.map((user) => {
     users.innerHTML += `<p>${user}</p>`;
   });
+  
 });
+socket.on("get owner", (roomOwner) => {
+    displayCookies.innerHTML += `<h1>${roomOwner}</h1>`
+});
+
+
 
 socket.on("get values", (numberOfCookies, fruser) => {
     displayCookies.innerHTML += `<p>${fruser}: ${numberOfCookies}</p>`;
