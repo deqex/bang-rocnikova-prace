@@ -3,6 +3,7 @@ const users = document.getElementById("users");
 const usersCount = document.getElementById("usersCount");
 const send = document.getElementById("send");
 const lick = document.getElementById("lick");
+const startGame = document.getElementById("startGame");
 const roomInput = document.getElementById("roomInput");
 const enterRoom = document.getElementById("enterRoom");
 const roomInfo = document.getElementById("roomInfo");
@@ -71,7 +72,7 @@ socket.on("join room", (data) => {
   roomInfo.innerHTML = data.message;
 });
 
-socket.on("update room users", (data, roomOwner) => {
+socket.on("update room users", (data) => {
   users.innerHTML = "";
   data.map((user) => {
     users.innerHTML += `<p>${user}</p>`;
@@ -81,8 +82,6 @@ socket.on("update room users", (data, roomOwner) => {
 socket.on("get owner", (roomOwner) => {
     displayCookies.innerHTML += `<h1>${roomOwner}</h1>`
 });
-
-
 
 socket.on("get values", (numberOfCookies, fruser) => {
     displayCookies.innerHTML += `<p>${fruser}: ${numberOfCookies}</p>`;
