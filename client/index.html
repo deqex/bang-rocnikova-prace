@@ -4,31 +4,149 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Bang</title>
     <style>
-
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      
+      input, button {
+        padding: 8px 12px;
+        margin: 5px;
+        border-radius: 4px;
+      }
+      
+      button {
+        cursor: pointer;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+      }
+      
+      button:hover {
+        background-color: #45a049;
+      }
+      
+      #availableRooms, #roomInfo {
+        margin-bottom: 15px;
+      }
+      
+      #users p {
+        margin: 5px 0;
+      }
+      
+      /* Game Area Styles */
+      #gameArea {
+        margin-top: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+      
+      .player-card {
+        width: 250px;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        padding: 15px;
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+      
+      .player-card.current-player {
+        border-color: #4CAF50;
+        background-color: #f1f8e9;
+      }
+      
+      .player-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+      }
+      
+      .player-header .role {
+        padding: 4px 8px;
+        background-color: #f1f1f1;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 0.8em;
+      }
+      
+      .player-header.my-player .role {
+        background-color: #4CAF50;
+        color: white;
+      }
+      
+      .player-stats {
+        margin-bottom: 15px;
+      }
+      
+      .stat {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+      }
+      
+      .stat-label {
+        font-weight: bold;
+      }
+      
+      .player-attributes h4 {
+        margin-top: 0;
+        margin-bottom: 8px;
+      }
+      
+      .player-attributes ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+      
+      .game-controls {
+        margin-top: 20px;
+        width: 100%;
+        display: flex;
+        gap: 10px;
+      }
+      
+      .game-controls button {
+        flex: 1;
+        padding: 10px;
+      }
     </style>
   </head>
   <body>
-    <div id="availableRooms">
-        <p>Available rooms</p>
+    <div class="container">
+      <div id="availableRooms">
+          <p>Available rooms</p>
+      </div>
+      <p id="roomInfo">Room: </p>
+      <input type="text" id="nameInput" placeholder="Enter username">
+      <button id="enterUsername">Enter username</button>
+
+      <input type="text" id="roomInput" placeholder="Enter room">
+      <button id="enterRoom">Enter room</button>
+
+      <input type="text" id="createRoomInput" placeholder="Create room">
+      <button id="createRoomButton">Create room</button>
+
+      <div id="users"></div>
+      <div id="usersCount"></div>
+
+      <button id="lick">Lick</button>
+      <button id="startGame">Start game</button>
+      <div id="owner"></div>
+      <div id="displayCookies"></div>
+      
+      <div id="gameArea"></div>
     </div>
-    <p id="roomInfo">Room: </p>
-    <input type="text" id="nameInput" placeholder="Enter username">
-    <button id="enterUsername">Enter username</button>
-
-    <input type="text" id="roomInput" placeholder="Enter room">
-    <button id="enterRoom">Enter room</button>
-
-    <input type="text" id="createRoomInput" placeholder="Create room">
-    <button id="createRoomButton">Create room</button>
-
-    <div id="users"></div>
-    <div id="usersCount"></div>
-
-    <button id="lick">Lick</button>
-    <button id="startGame">Start game</button>
-    <div id="owner"></div>
-    <div id="displayCookies"></div>
-
 
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
     <script src="./res/js/main.js"></script>
