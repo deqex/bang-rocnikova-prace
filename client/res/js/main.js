@@ -9,6 +9,7 @@ const enterRoom = document.getElementById("enterRoom");
 const roomInfo = document.getElementById("roomInfo");
 const availableRooms = document.getElementById("availableRooms");
 const displayCookies = document.getElementById("displayCookies");
+const owner = document.getElementById("owner");
 
 
 const nameInput = document.getElementById("nameInput");
@@ -80,8 +81,15 @@ socket.on("update room users", (data) => {
   
 });
 socket.on("get owner", (roomOwner) => {
-    displayCookies.innerHTML += `<h1>${roomOwner}</h1>`
+    owner.innerHTML += `<h1>${roomOwner}</h1>`
 });
+
+startGame.onclick = () => {
+  roomOwner = document.getElementById('owner').innerText;
+  if (username == roomOwner) {
+    
+  }
+}
 
 socket.on("get values", (numberOfCookies, fruser) => {
     displayCookies.innerHTML += `<p>${fruser}: ${numberOfCookies}</p>`;
