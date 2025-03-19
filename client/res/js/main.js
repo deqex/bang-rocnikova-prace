@@ -594,7 +594,26 @@ socket.on("get rooms", (data) => {
   availableRooms.innerHTML = "<p>Available rooms</p>";
   data.forEach((room) => {
     availableRooms.innerHTML += `
-      <p>${room.roomNum} (${room.playerCount}/${room.maxPlayers} players)</p>
+      <p class="availableRoom" data-room-num="${room.roomNum}">${room.roomNum} (${room.playerCount}/${room.maxPlayers} players)</p>
     `;
+  });
+  
+  document.querySelectorAll('.availableRoom').forEach(roomElement => {
+    roomElement.onclick = () => {
+      const roomNum = roomElement.getAttribute('data-room-num');
+      console.log("Selected room:", roomNum);
+      if (username) {
+        socket.emit("join room", { roomNum: roomNum, username: username });
+        document.getElementById("leaveRoom").style.display = "block";
+      } else { 
+          username = "bigretard"; //tohle pak odeber
+          const timeNow = Date.now().toString();
+          const lastFour = timeNow.slice(-4);
+          username = username + "#" + lastFour;
+          socket.emit("save username", username);
+          socket.emit("join room", { roomNum: roomNum, username: username });
+          document.getElementById("leaveRoom").style.display = "block";
+      }
+    };
   });
 });
