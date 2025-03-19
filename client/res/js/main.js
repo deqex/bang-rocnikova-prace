@@ -355,11 +355,13 @@ socket.on("game started", (gameData) => {
 });
 
 function renderPlayerCards(gameData) {
+  // Clear the game area first
   gameArea.innerHTML = '';
 
   const currentPlayerData = gameData.find(player => player.username === username);
   if (!currentPlayerData) return;
 
+  // Hide all pre-game elements
   const elementsToHide = [
     "roomInput", "enterRoom", "createRoomButton", "availableRooms", "startGame",
     "lick", "owner", "test", "displayCookies", "users", "usersCount", "maxPlayers",
@@ -370,15 +372,6 @@ function renderPlayerCards(gameData) {
     const element = document.getElementById(id);
     if (element) element.style.display = "none";
   });
-
-//
-//
-// ZACATEK AI KOD SEKCE
-// struktura od AI zbytek poupraven, nejake veci jsem pridal ja napr. playerCard, isCurrentPlayer, Sheriff 
-// to ze u toho je komentar neznamena ze je od AI, ono si to bere credit za moji praci :c
-// ai hlavne delalo distance calculation, responzivitu a rozpolozeni
-//
-//
 
   // Fix container to prevent scrolling
   document.querySelector('.container').style.margin = "0";
@@ -405,7 +398,8 @@ function renderPlayerCards(gameData) {
   table.innerHTML = `
     <div class="table-content">
       <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
-        <img src="./res/img/01_sceriffo.png"style="max-height: 100%; max-width: 100%;">
+        <img src="./res/img/01_barile.png" style="max-height: 60%; max-width: 45%;">
+        <img src="./res/img/01_barile.png" style="max-height: 60%; max-width: 45%;">
       </div>
       <p>${gameData.length} Players</p>
     </div>
@@ -531,6 +525,7 @@ function renderPlayerCards(gameData) {
       roleDisplay = player.role;
     }
 
+    // Create card content
     playerCard.innerHTML = `
       <div class="player-name">${displayName}</div>
       <div class="player-role ${player.role.toLowerCase()}">${roleDisplay}</div>
@@ -562,8 +557,6 @@ function renderPlayerCards(gameData) {
     <button id="drawCard">Draw Card</button>
   `;
   gameArea.appendChild(controls);
-
-
 
   // Initial positioning
   updatePositions();
