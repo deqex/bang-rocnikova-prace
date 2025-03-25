@@ -306,6 +306,24 @@ socket.on("join room", (data) => {
     
     console.log(`Game started in room ${room}`);
   });
+  
+  socket.on("get cards", (cards) => {
+    if (cards) {
+      if (socket.data.room) {
+        roomsInfo[socket.data.room].cards = cards;
+        console.log(`Cards stored for room ${socket.data.room}`);
+      }
+      
+      if (socket.data.room) {
+        io.to(socket.data.room).emit("get cards", cards);
+      } else {
+        console.log("you are not in a room");
+      }
+    } 
+    else if (socket.data.room && roomsInfo[socket.data.room].cards) {
+      socket.emit("get cards", roomsInfo[socket.data.room].cards);
+    }
+  });
 });
 
 
