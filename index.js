@@ -302,9 +302,58 @@ socket.on("join room", (data) => {
     roomsInfo[room].gameActive = true;
     roomsInfo[room].gameData = gameData;
     
+    const sheriff = gameData.find(player => player.role === "Sheriff");
+    roomsInfo[room].currentTurn = sheriff ? sheriff.username : null;
     io.to(room).emit("game started", gameData);
     
     console.log(`Game started in room ${room}`);
+  });
+  
+  socket.on("update turn", (playerUsername) => {
+    if (!socket.data.room) return;
+    
+    const room = roomsInfo[socket.data.room];
+    if (!room) return;
+    
+    if (room.currentTurn && room.currentTurn !== socket.data.user) {
+      console.log(`Turn update rejected: ${socket.data.user} tried to update turn when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+    
+    room.currentTurn = playerUsername;
+    console.log(`Turn updated in room ${socket.data.room}: ${playerUsername}'s turn`);
+    
+    io.to(socket.data.room).emit("update turn", playerUsername);
+  });
+  
+  socket.on("update card count", (playerUsername, cardCount) => {
+    if (!socket.data.room) return;
+    
+    if (playerUsername !== socket.data.user) {
+      console.log(`Card count update rejected: ${socket.data.user} tried to update ${playerUsername}'s card count`);
+      return;
+    }
+    
+    console.log(`Card count updated for ${playerUsername} in room ${socket.data.room}: ${cardCount} cards`);
+    io.to(socket.data.room).emit("update card count", playerUsername, cardCount);
+  });
+  
+  socket.on("get cards", (cards) => {
+    if (cards) {
+      if (socket.data.room) {
+        roomsInfo[socket.data.room].cards = cards;
+        console.log(`Cards for room ${socket.data.room}`);
+      }
+      
+      if (socket.data.room) {
+        io.to(socket.data.room).emit("get cards", cards);
+      } else {
+        console.log("you are not in a room")
+      }
+    } 
+    else if (socket.data.room && roomsInfo[socket.data.room].cards) {
+      socket.emit("get cards", roomsInfo[socket.data.room].cards);
+    }
   });
 });
 

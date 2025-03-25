@@ -28,6 +28,10 @@ let username;
 let numberOfCookies = 0;
 let players = [];
 let isRoomPrivate;
+let gameDeck = []; 
+let playerHand = []; 
+let currentTurn = null; //mozna pak odeber
+let cardSelectionOpen = false; //mozna pak odeber
 
 enterUsername.onclick = () => {
   username = nameInput.value;
@@ -311,6 +315,7 @@ function generateGameData(players) {
     { name: "Wells Fargo", details: "3♥" }
   ];
   shuffleArray(bangCards);
+  socket.emit("get cards", bangCards);
 
   const roles = generateRoles(players.length);
   const gameData = players.map((player, index) => {
@@ -318,8 +323,8 @@ function generateGameData(players) {
     const champion = championNames[Math.floor(Math.random() * championNames.length)]; //mrdka
     const role = roles[index];
     const baseHP = championData[champion].baseHP; //jeste vetsi mrdka 
-    const attributes = [];
-    let hp; //fakt nechapu proc tam muze bejt const a tu ne
+    let attributes = [];
+    let hp;
     if (role === "Sheriff") { //mozna pak ternarni jestli ti zbyde cas
       hp = baseHP + 1;
     } else {
@@ -337,7 +342,6 @@ function generateGameData(players) {
       attributes: []
     };
   });
-
   return gameData;
 }
 
@@ -351,8 +355,70 @@ function shuffleArray(array) {
 }
 
 socket.on("game started", (gameData) => {
+  const sheriff = gameData.find(player => player.role === "Sheriff");
+  currentTurn = sheriff ? sheriff.username : null;
+  
+  if (gameDeck.length === 0) {
+    socket.emit("get cards");
+  } else {
+    dealInitialCards(gameData);
+  }
   renderPlayerCards(gameData);
+  
+  if (currentTurn) {
+    socket.emit("update turn", currentTurn);
+  }
 });
+
+socket.on("get cards", (cards) => {
+  gameDeck = shuffleArray([...cards]); 
+  console.log("Received deck with", gameDeck.length, "cards");
+  
+  const currentPlayerData = players.find(p => p.username === username);
+  if (currentPlayerData) {
+    dealInitialCards(players);
+  }
+});
+
+function dealInitialCards(gameData) {
+  gameData.forEach(player => {
+    if (!player.cards) {
+      player.cards = [];
+      player.cardCount = 0;
+    }
+  });
+  
+  const currentPlayer = gameData.find(player => player.username === username);
+  if (currentPlayer) {
+    const cardsToDeal = currentPlayer.maxHP;
+    currentPlayer.cards = [];
+    
+    for (let i = 0; i < cardsToDeal && gameDeck.length > 0; i++) { //shoutout stepan
+      const card = gameDeck.pop();
+      currentPlayer.cards.push(card);
+    }
+    
+    playerHand = [...currentPlayer.cards]; 
+    currentPlayer.cardCount = playerHand.length;
+    console.log(`Dealt ${playerHand.length} cards to you`);
+    console.log("Your hand:", playerHand);
+  }
+  
+  gameData.forEach(player => {
+    if (player.username !== username) {
+      player.cardCount = player.maxHP;
+    }
+  });
+  
+  players = gameData; 
+}
+
+//
+//
+// ZACATEK AI KOD SEKCE
+// ne vse bylo AI jako napr playerCard, ale pozicovani a responzivita je AI
+//
+//
 
 function renderPlayerCards(gameData) {
   // Clear the game area first
@@ -360,6 +426,9 @@ function renderPlayerCards(gameData) {
 
   const currentPlayerData = gameData.find(player => player.username === username);
   if (!currentPlayerData) return;
+  
+  // Update players array
+  players = gameData;
 
   // Hide all pre-game elements
   const elementsToHide = [
@@ -394,7 +463,7 @@ function renderPlayerCards(gameData) {
 
   // Create the central table
   const table = document.createElement("div");
-  table.className = "game-table";
+  table.className = "game-table"; 
   table.innerHTML = `
     <div class="table-content">
       <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
@@ -500,6 +569,7 @@ function renderPlayerCards(gameData) {
   // Position players around the table
   gameData.forEach((player) => {
     const isCurrentPlayer = player.username === username;
+    const isCurrentTurn = player.username === currentTurn;
 
     // Create player card
     const playerCard = document.createElement("div");
@@ -512,25 +582,34 @@ function renderPlayerCards(gameData) {
     if (player.role === "Sheriff") {
       playerCard.classList.add("sheriff");
     }
+    
+    // Add active turn indicator
+    if (isCurrentTurn) {
+      playerCard.classList.add("active-turn");
+    }
 
     // Calculate distance between current player and this player
     const distance = isCurrentPlayer ? 0 : calculateDistance(currentPlayerData, player, gameData.length);
 
     // Format player name (remove ID part after #)
-    const displayName = player.username.split('#')[0];
+    const displayName = player.username; // Show full name including ID numbers
 
     // Determine what role to display
     let roleDisplay = "?";
     if (isCurrentPlayer || player.role === "Sheriff") {
       roleDisplay = player.role;
     }
+    
+    // Set card count - either from player data or default to maxHP
+    const cardCount = player.cardCount !== undefined ? player.cardCount : player.maxHP;
 
     // Create card content
     playerCard.innerHTML = `
-      <div class="player-name">${displayName}</div>
+      <div class="player-name">${displayName}${isCurrentTurn ? ' (Turn)' : ''}</div>
       <div class="player-role ${player.role.toLowerCase()}">${roleDisplay}</div>
       <div class="player-stats">
         <div>HP: ${player.hp}/${player.maxHP}</div>
+        <div>Cards: ${cardCount}</div>
         <div>Distance: ${isCurrentPlayer ? "-" : distance}</div>
         <div>Champion: ${player.champion}</div>
       </div>
@@ -548,17 +627,124 @@ function renderPlayerCards(gameData) {
     gameArea.appendChild(playerCard);
   });
 
-  // Add game controls at the bottom
   const controls = document.createElement("div");
   controls.className = "game-controls";
+  
+  const isPlayerTurn = currentTurn === username;
+  
   controls.innerHTML = `
-    <button id="endTurn">End Turn</button>
-    <button id="playCard">Play Card</button>
-    <button id="drawCard">Draw Card</button>
+    <button id="endTurn" ${!isPlayerTurn ? 'disabled' : ''}>End Turn</button>
+    <button id="playCard" ${!isPlayerTurn ? 'disabled' : ''}>Play Card</button>
+    <button id="drawCard" ${!isPlayerTurn ? 'disabled' : ''}>Draw Card</button>
   `;
   gameArea.appendChild(controls);
 
-  // Initial positioning
+  document.getElementById("drawCard").addEventListener("click", () => {
+    if (currentTurn !== username) {
+      console.log("Not your turn!");
+      return;
+    }
+    
+    if (gameDeck.length > 0) {
+      const drawnCard = gameDeck.pop(); 
+      playerHand.push(drawnCard); 
+      console.log("Drew card:", drawnCard);
+      console.log(`Cards remaining in deck: ${gameDeck.length}`);
+      
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+        socket.emit("update card count", username, playerHand.length);
+      }
+      
+      renderPlayerCards(players);
+    } else {
+      console.log("No cards left in the deck!");
+    }
+  });
+  
+  document.getElementById("playCard").addEventListener("click", () => {
+    if (currentTurn !== username) {
+      console.log("Not your turn!");
+      return;
+    }
+    
+    if (playerHand.length === 0) { //lowkey pak mozna dej do jednoho ifu jsem linej rn
+      console.log("No cards to play!");
+      return;
+    }
+
+    cardSelectionOpen = true;
+    
+    const cardMenu = document.createElement("div");
+    cardMenu.className = "card-selection-menu";
+    
+    const menuHeader = document.createElement("div");
+    menuHeader.className = "card-menu-header";
+    menuHeader.innerHTML = `
+      <h2>Select a Card to Play</h2>
+      <button id="closeCardMenu">✕</button>
+    `;
+    cardMenu.appendChild(menuHeader);
+    
+    const cardContainer = document.createElement("div");
+    cardContainer.className = "card-container";
+    
+    playerHand.forEach((card, index) => {
+      const cardElement = document.createElement("div");
+      cardElement.className = "card-item";
+      cardElement.innerHTML = `
+        <div class="card-name">${card.name}</div>
+        <div class="card-details">${card.details}</div>
+      `;
+      
+      cardElement.addEventListener("click", () => {
+        console.log(`Selected card: ${card.name} (${card.details})`);
+        playerHand.splice(index, 1);
+        
+        const currentPlayer = players.find(p => p.username === username);
+        if (currentPlayer) {
+          currentPlayer.cardCount = playerHand.length;
+          socket.emit("update card count", username, playerHand.length);
+        }
+        
+        document.body.removeChild(cardMenu);
+        cardSelectionOpen = false;
+        
+        renderPlayerCards(players);
+      });
+      
+      cardContainer.appendChild(cardElement);
+    });
+    
+    cardMenu.appendChild(cardContainer);
+    document.body.appendChild(cardMenu);
+    
+    document.getElementById("closeCardMenu").addEventListener("click", () => {
+      document.body.removeChild(cardMenu);
+      cardSelectionOpen = false;
+    });
+  });
+  
+
+
+  document.getElementById("endTurn").addEventListener("click", () => {
+    if (currentTurn !== username) {
+      console.log("Not your turn!");
+      return;
+    }
+    
+    // zacatek ai
+    const currentPlayerIndex = players.findIndex(p => p.username === username);
+    const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    const nextPlayer = players[nextPlayerIndex];
+    currentTurn = nextPlayer.username;
+    socket.emit("update turn", currentTurn);
+    // konec ai
+    
+    renderPlayerCards(players);
+    console.log(`Ended turn. It's now ${nextPlayer.username}'s turn.`);
+  });
   updatePositions();
 
   // Update positions when window is resized
@@ -590,7 +776,7 @@ socket.on("get rooms", (data) => {
       <p class="availableRoom" data-room-num="${room.roomNum}">${room.roomNum} (${room.playerCount}/${room.maxPlayers} players)</p>
     `;
   });
-  
+
   document.querySelectorAll('.availableRoom').forEach(roomElement => {
     roomElement.onclick = () => {
       const roomNum = roomElement.getAttribute('data-room-num');
@@ -598,15 +784,146 @@ socket.on("get rooms", (data) => {
       if (username) {
         socket.emit("join room", { roomNum: roomNum, username: username });
         document.getElementById("leaveRoom").style.display = "block";
-      } else { 
-          username = "bigretard"; //tohle pak odeber
-          const timeNow = Date.now().toString();
-          const lastFour = timeNow.slice(-4);
-          username = username + "#" + lastFour;
-          socket.emit("save username", username);
-          socket.emit("join room", { roomNum: roomNum, username: username });
-          document.getElementById("leaveRoom").style.display = "block";
+      } else {
+        username = "bigretard"; //tohle pak odeber
+        const timeNow = Date.now().toString();
+        const lastFour = timeNow.slice(-4);
+        username = username + "#" + lastFour;
+        socket.emit("save username", username);
+        socket.emit("join room", { roomNum: roomNum, username: username });
+        document.getElementById("leaveRoom").style.display = "block";
       }
     };
   });
 });
+
+socket.on("update turn", (playerUsername) => {
+  currentTurn = playerUsername;
+  if (players.length > 0) {
+    renderPlayerCards(players);
+  }
+  
+  if (currentTurn === username) {
+    console.log("It's your turn!");
+  }
+});
+
+socket.on("update card count", (playerUsername, cardCount) => {
+  const playerToUpdate = players.find(p => p.username === playerUsername);
+  if (playerToUpdate) {
+    playerToUpdate.cardCount = cardCount;
+    
+    if (!cardSelectionOpen && players.length > 0) {
+      renderPlayerCards(players);
+    }
+  }
+});
+
+const style = document.createElement('style');
+style.textContent = `
+.player-card.active-turn {
+  box-shadow: 0 0 15px #ffcc00;
+  border: 2px solid #ffcc00;
+}
+
+.game-controls button:disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.game-controls button {
+  transition: all 0.2s ease;
+}
+
+.game-controls button:not(:disabled):hover {
+  transform: scale(1.05);
+  background-color: #45a049;
+}
+`;
+document.head.appendChild(style);
+
+const cardMenuStyle = document.createElement('style');
+cardMenuStyle.textContent = `
+.card-selection-menu {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.85);
+  border-radius: 10px;
+  padding: 20px;
+  z-index: 1000;
+  width: 80%;
+  max-width: 800px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.card-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 10px;
+}
+
+.card-menu-header h2 {
+  color: white;
+  margin: 0;
+}
+
+#closeCardMenu {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.card-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.card-item {
+  width: 120px;
+  height: 180px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+  padding: 10px;
+  text-align: center;
+}
+
+.card-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.card-name {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.card-details {
+  font-size: 14px;
+  color: #555;
+}
+`;
+document.head.appendChild(cardMenuStyle);
