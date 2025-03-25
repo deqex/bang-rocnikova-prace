@@ -599,9 +599,13 @@ function renderPlayerCards(gameData) {
     if (isCurrentPlayer || player.role === "Sheriff") {
       roleDisplay = player.role;
     }
-    
-    // Set card count - either from player data or default to maxHP
-    const cardCount = player.cardCount !== undefined ? player.cardCount : player.maxHP;
+
+    let cardCount;
+    if (player.cardCount !== undefined) {
+      cardCount = player.cardCount;
+    } else {
+      cardCount = player.maxHP;
+    }
 
     // Create card content
     playerCard.innerHTML = `
@@ -641,7 +645,7 @@ function renderPlayerCards(gameData) {
 
   document.getElementById("drawCard").addEventListener("click", () => {
     if (currentTurn !== username) {
-      console.log("Not your turn!");
+      console.log("not your turn");
       return;
     }
     
@@ -659,18 +663,18 @@ function renderPlayerCards(gameData) {
       
       renderPlayerCards(players);
     } else {
-      console.log("No cards left in the deck!");
+      console.log("No cards left in the deck");
     }
   });
   
   document.getElementById("playCard").addEventListener("click", () => {
     if (currentTurn !== username) {
-      console.log("Not your turn!");
+      console.log("Not your turn");
       return;
     }
     
     if (playerHand.length === 0) { //lowkey pak mozna dej do jednoho ifu jsem linej rn
-      console.log("No cards to play!");
+      console.log("No cards to play");
       return;
     }
 
@@ -730,7 +734,7 @@ function renderPlayerCards(gameData) {
 
   document.getElementById("endTurn").addEventListener("click", () => {
     if (currentTurn !== username) {
-      console.log("Not your turn!");
+      console.log("Not your turn");
       return;
     }
     
