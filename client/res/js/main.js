@@ -675,7 +675,6 @@ socket.on("get rooms", (data) => {
     `;
   });
 
-
   document.querySelectorAll('.availableRoom').forEach(roomElement => {
     roomElement.onclick = () => {
       const roomNum = roomElement.getAttribute('data-room-num');
@@ -691,20 +690,7 @@ socket.on("get rooms", (data) => {
         socket.emit("save username", username);
         socket.emit("join room", { roomNum: roomNum, username: username });
         document.getElementById("leaveRoom").style.display = "block";
-      } else {
-        username = "bigretard"; //tohle pak odeber
-        const timeNow = Date.now().toString();
-        const lastFour = timeNow.slice(-4);
-        username = username + "#" + lastFour;
-        socket.emit("save username", username);
-        socket.emit("join room", { roomNum: roomNum, username: username });
-        document.getElementById("leaveRoom").style.display = "block";
       }
     };
   });
-});
-
-socket.on("get cards", (cards) => {
-  gameDeck = [...cards]; // Store the received deck
-  console.log("Received deck with", gameDeck.length, "cards");
 });
