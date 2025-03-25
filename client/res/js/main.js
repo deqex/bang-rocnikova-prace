@@ -28,6 +28,8 @@ let username;
 let numberOfCookies = 0;
 let players = [];
 let isRoomPrivate;
+let gameDeck = [];
+let playerHand = [];
 
 enterUsername.onclick = () => {
   username = nameInput.value;
@@ -311,6 +313,7 @@ function generateGameData(players) {
     { name: "Wells Fargo", details: "3♥" }
   ];
   shuffleArray(bangCards);
+  socket.emit("get cards", bangCards);
 
   const roles = generateRoles(players.length);
   const gameData = players.map((player, index) => {
@@ -318,8 +321,8 @@ function generateGameData(players) {
     const champion = championNames[Math.floor(Math.random() * championNames.length)]; //mrdka
     const role = roles[index];
     const baseHP = championData[champion].baseHP; //jeste vetsi mrdka 
-    const attributes = [];
-    let hp; //fakt nechapu proc tam muze bejt const a tu ne
+    let attributes = [];
+    let hp;
     if (role === "Sheriff") { //mozna pak ternarni jestli ti zbyde cas
       hp = baseHP + 1;
     } else {
@@ -337,7 +340,6 @@ function generateGameData(players) {
       attributes: []
     };
   });
-
   return gameData;
 }
 
@@ -351,8 +353,64 @@ function shuffleArray(array) {
 }
 
 socket.on("game started", (gameData) => {
+  if (gameDeck.length === 0) {
+    socket.emit("get cards");
+  } else {
+    dealInitialCards(gameData);
+  }
+
   renderPlayerCards(gameData);
 });
+
+socket.on("get cards", (cards) => {
+  gameDeck = shuffleArray([...cards]);
+  console.log("received deck with" +  gameDeck.length + "cards");
+
+  const currentPlayerData = players.find(p => p.username === username);
+  if (currentPlayerData) {
+    dealInitialCards(players);
+  }
+});
+
+function dealInitialCards(gameData) {
+  gameData.forEach(player => {
+    if (!player.cards) {
+      player.cards = [];
+      player.cardCount = 0;
+    }
+  });
+
+  const currentPlayer = gameData.find(player => player.username === username);
+  if (currentPlayer) {
+    const cardsToDeal = currentPlayer.maxHP;
+    currentPlayer.cards = [];
+
+    for (let i = 0; i < cardsToDeal && gameDeck.length > 0; i++) { //shoutout stepan
+      const card = gameDeck.pop();
+      currentPlayer.cards.push(card);
+    }
+
+    playerHand = [...currentPlayer.cards];
+    currentPlayer.cardCount = playerHand.length;
+    console.log(`Dealt ${playerHand.length} cards to you`);
+    console.log("Your hand:", playerHand);
+  }
+
+  gameData.forEach(player => {
+    if (player.username !== username) {
+      player.cardCount = player.maxHP;
+    }
+  });
+
+  players = gameData; 
+}
+
+//
+//
+// ZACATEK AI KOD SEKCE
+// ne vse bylo AI jako napr playerCard, ale pozicovani a responzivita je AI
+//
+//
 
 function renderPlayerCards(gameData) {
   // Clear the game area first
@@ -360,6 +418,7 @@ function renderPlayerCards(gameData) {
 
   const currentPlayerData = gameData.find(player => player.username === username);
   if (!currentPlayerData) return;
+  players = gameData;
 
   // Hide all pre-game elements
   const elementsToHide = [
@@ -525,12 +584,20 @@ function renderPlayerCards(gameData) {
       roleDisplay = player.role;
     }
 
+    let cardCount;
+    if (player.cardCount !== undefined) {
+      cardCount = player.cardCount;
+    } else {
+      cardCount = player.maxHP;
+    }
+
     // Create card content
     playerCard.innerHTML = `
       <div class="player-name">${displayName}</div>
       <div class="player-role ${player.role.toLowerCase()}">${roleDisplay}</div>
       <div class="player-stats">
         <div>HP: ${player.hp}/${player.maxHP}</div>
+        <div>Cards: ${cardCount}</div>
         <div>Distance: ${isCurrentPlayer ? "-" : distance}</div>
         <div>Champion: ${player.champion}</div>
       </div>
@@ -558,6 +625,23 @@ function renderPlayerCards(gameData) {
   `;
   gameArea.appendChild(controls);
 
+  document.getElementById("drawCard").addEventListener("click", () => {
+    if (gameDeck.length > 0) {
+      const drawnCard = gameDeck.pop(); // to je NEJHORSI jmeno pro tohle
+      playerHand.push(drawnCard);
+      console.log("Drew card:", drawnCard);
+      console.log(`Cards remaining in deck: ${gameDeck.length}`);
+
+      const currentPlayer = players.find(p => p.username === username); 
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+      }
+
+      renderPlayerCards(players);
+    } else {
+      console.log("No cards left in the deck!"); // dodelej pak
+    }
+  });
   // Initial positioning
   updatePositions();
 
@@ -590,7 +674,7 @@ socket.on("get rooms", (data) => {
       <p class="availableRoom" data-room-num="${room.roomNum}">${room.roomNum} (${room.playerCount}/${room.maxPlayers} players)</p>
     `;
   });
-  
+
   document.querySelectorAll('.availableRoom').forEach(roomElement => {
     roomElement.onclick = () => {
       const roomNum = roomElement.getAttribute('data-room-num');
@@ -598,14 +682,14 @@ socket.on("get rooms", (data) => {
       if (username) {
         socket.emit("join room", { roomNum: roomNum, username: username });
         document.getElementById("leaveRoom").style.display = "block";
-      } else { 
-          username = "bigretard"; //tohle pak odeber
-          const timeNow = Date.now().toString();
-          const lastFour = timeNow.slice(-4);
-          username = username + "#" + lastFour;
-          socket.emit("save username", username);
-          socket.emit("join room", { roomNum: roomNum, username: username });
-          document.getElementById("leaveRoom").style.display = "block";
+      } else {
+        username = "bigretard"; //tohle pak odeber
+        const timeNow = Date.now().toString();
+        const lastFour = timeNow.slice(-4);
+        username = username + "#" + lastFour;
+        socket.emit("save username", username);
+        socket.emit("join room", { roomNum: roomNum, username: username });
+        document.getElementById("leaveRoom").style.display = "block";
       }
     };
   });
