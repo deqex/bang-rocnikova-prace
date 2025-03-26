@@ -32,6 +32,8 @@ let gameDeck = []; // This will now be used just for reference
 let playerHand = []; 
 let currentTurn = null; //mozna pak odeber
 let cardSelectionOpen = false; //mozna pak odeber
+let targetingMode = false; // Flag to track if we're in targeting mode
+let selectedCard = null; // Track the selected card for targeting
 
 enterUsername.onclick = () => {
   username = nameInput.value;
@@ -218,7 +220,7 @@ function calculateDistance(playerA, playerB, totalPlayers) {
 //
 
 function generateGameData(players) {
-  const championData = { // generovano pomoci ai abych nemusel opisovat s trochou opravy struktura tvorena mnou
+  const championData = { // generovano pomoci ai abych nemusel opisovat s trochou opravy 
     "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
     "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
     "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
@@ -229,7 +231,7 @@ function generateGameData(players) {
     "Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
     "Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
     "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
-    "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards for checks and chooses which to use" },
+    "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
     "Vulture Sam": { baseHP: 4, description: "Takes all cards of eliminated players" }
   };
 
@@ -696,6 +698,23 @@ function renderPlayerCards(gameData) {
       
       cardElement.addEventListener("click", () => {
         console.log(`Selected card: ${card.name} (${card.details})`);
+        
+        if (card.name === "Bang!") {
+          targetingMode = true;
+          selectedCard = card;
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          
+          const targetInstruction = document.createElement("div");
+          targetInstruction.id = "targetInstruction";
+          targetInstruction.className = "target-instruction";
+          targetInstruction.innerHTML = `<p>select a player to target</p>`;
+          document.body.appendChild(targetInstruction);
+          
+          enableTargeting();
+          return;
+        }
+        
         playerHand.splice(index, 1);
         
         const currentPlayer = players.find(p => p.username === username);
@@ -833,11 +852,258 @@ socket.on("draw card result", (result) => {
   }
 });
 
+function enableTargeting() {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    if (card.classList.contains('current-player')) return;
+    card.classList.add('targetable');
+    card.addEventListener('click', handleCardTargeting);
+  });
+}
+
+function disableTargeting() {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    card.classList.remove('targetable');
+    card.removeEventListener('click', handleCardTargeting);
+  });
+  const instruction = document.getElementById('targetInstruction');
+  if (instruction) document.body.removeChild(instruction);
+
+  targetingMode = false;
+  selectedCard = null;
+}
+
+function handleCardTargeting(event) {
+  // Get the player card that was clicked
+  const targetCard = event.currentTarget;
+  
+  // Find the username in the card
+  const nameElement = targetCard.querySelector('.player-name');
+  const targetUsername = nameElement.textContent.replace(' (Turn)', ''); // Remove turn indicator if present
+  
+  // Find player data for target and current player
+  const targetPlayer = players.find(p => p.username === targetUsername);
+  const currentPlayer = players.find(p => p.username === username);
+  
+  if (!targetPlayer || !currentPlayer) {
+    console.log("Could not find player data");
+    disableTargeting();
+    return;
+  }
+  
+  // Check distance between players
+  const distance = calculateDistance(currentPlayer, targetPlayer, players.length);
+  let range = 1;
+  
+  if (distance > range) {
+    alert(`Target is out of range (distance: ${distance}, your range: ${range})`);
+    disableTargeting();
+    return;
+  }
+  console.log(`Targeting ${targetUsername} with Bang!`);
+  const cardIndex = playerHand.findIndex(card => 
+    card.name === selectedCard.name && card.details === selectedCard.details);
+  
+  if (cardIndex !== -1) {
+    playerHand.splice(cardIndex, 1);
+    currentPlayer.cardCount = playerHand.length;
+    socket.emit("update card count", username, playerHand.length);
+  }
+  
+  socket.emit("play bang", {
+    target: targetUsername,
+    card: selectedCard
+  });
+  
+  disableTargeting();
+  renderPlayerCards(players);
+}
+
+socket.on("bang attack", (data) => {
+  if (data.target !== username) return;
+  
+  console.log(`${data.attacker} attacked you with Bang!`);
+  const missedCard = playerHand.find(card => card.name === "Missed!");
+  
+  if (missedCard) {
+    showMissedDialog(data.attacker, missedCard);
+  } else {
+    socket.emit("take damage", {
+      amount: 1,
+      attacker: data.attacker
+    });
+  }
+});
+
+function showMissedDialog(attacker, missedCard) {
+  const missedDialog = document.createElement("div");
+  missedDialog.className = "missed-dialog";
+  
+  missedDialog.innerHTML = `
+    <div class="missed-dialog-content">
+      <h3>${attacker} attacked you with Bang!</h3>
+      <p>You have a Missed! card. Do you want to use it?</p>
+      <div class="missed-buttons">
+        <button id="useMissed">Yes, use Missed!</button>
+        <button id="takeDamage">No, take damage</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(missedDialog);
+  document.getElementById("useMissed").addEventListener("click", () => {
+    const cardIndex = playerHand.findIndex(card => card.name === missedCard.name && card.details === missedCard.details);
+    if (cardIndex !== -1) {
+      playerHand.splice(cardIndex, 1);
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+        socket.emit("update card count", username, playerHand.length);
+      }
+    }
+    
+    socket.emit("use missed", {
+      attacker: attacker,
+      card: missedCard
+    });
+    
+    document.body.removeChild(missedDialog);
+    renderPlayerCards(players);
+  });
+  
+  document.getElementById("takeDamage").addEventListener("click", () => {
+    socket.emit("take damage", {
+      amount: 1,
+      attacker: attacker
+    });
+    
+    document.body.removeChild(missedDialog);
+  });
+}
+
+socket.on("attack missed", (data) => {
+  console.log(`${data.defender} used Missed! to avoid Bang! from ${data.attacker}`);
+  //bro animaci nebo neco
+});
+
+//
+socket.on("player damaged", (data) => {
+  console.log(`${data.player} took ${data.amount} damage from ${data.attacker}, HP now: ${data.currentHP}`);
+  
+  const playerToUpdate = players.find(p => p.username === data.player);
+  if (playerToUpdate) {
+    playerToUpdate.hp = data.currentHP;
+    renderPlayerCards(players);
+  }
+});
+
+socket.on("player eliminated", (data) => {
+  console.log(`${data.player} was eliminated by ${data.attacker}`);
+  
+  const playerToUpdate = players.find(p => p.username === data.player);
+  if (playerToUpdate) {
+    playerToUpdate.hp = 0;
+    playerToUpdate.eliminated = true;
+    renderPlayerCards(players);
+  }
+  
+  if (data.player === username) {
+    const controls = document.querySelector('.game-controls');
+    controls.style.display = 'none';
+    const eliminationMsg = document.createElement('div');
+    eliminationMsg.className = 'elimination-message';
+    eliminationMsg.innerHTML = `<h2>You have been eliminated!</h2>`;
+    document.body.appendChild(eliminationMsg);
+  }
+});
+
 const style = document.createElement('style');
 style.textContent = `
 .player-card.active-turn {
   box-shadow: 0 0 15px #ffcc00;
   border: 2px solid #ffcc00;
+}
+
+.player-card.targetable {
+  cursor: pointer;
+  box-shadow: 0 0 15px #ff3300;
+  transition: transform 0.2s ease;
+}
+
+.player-card.targetable:hover {
+  transform: scale(1.1);
+}
+
+.target-instruction {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 1000;
+  text-align: center;
+}
+
+.missed-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.missed-dialog-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.missed-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+.missed-buttons button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+#useMissed {
+  background-color: #4CAF50;
+  color: white;
+}
+
+#takeDamage {
+  background-color: #f44336;
+  color: white;
+}
+
+.elimination-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 20px 30px;
+  border-radius: 10px;
+  text-align: center;
+  z-index: 2000;
 }
 
 .game-controls button:disabled {

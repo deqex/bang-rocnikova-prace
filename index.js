@@ -382,6 +382,68 @@ socket.on("join room", (data) => {
       remainingCards: room.gameDeck.length
     });
   });
+
+  socket.on("play bang", (data) => {
+    if (!socket.data.room) return;
+    
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+    
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Bang play rejected: ${socket.data.user} tried to play Bang! when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+    
+    console.log(`${socket.data.user} played Bang! targeting ${data.target} in room ${socket.data.room}`);
+    io.to(socket.data.room).emit("bang attack", {
+      attacker: socket.data.user,
+      target: data.target,
+      card: data.card
+    });
+  });
+
+  socket.on("use missed", (data) => {
+    if (!socket.data.room) return;
+    
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+    
+    console.log(`${socket.data.user} used Missed! to avoid Bang! from ${data.attacker} in room ${socket.data.room}`);
+    
+    io.to(socket.data.room).emit("attack missed", {
+      defender: socket.data.user,
+      attacker: data.attacker
+    });
+  });
+
+  socket.on("take damage", (data) => {
+    if (!socket.data.room) return;
+    
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+    
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+    if (!playerData) return;
+    
+    playerData.hp -= data.amount;
+    console.log(`${socket.data.user} took ${data.amount} damage from ${data.attacker}, HP now: ${playerData.hp}`);
+    
+    io.to(socket.data.room).emit("player damaged", {
+      player: socket.data.user,
+      attacker: data.attacker,
+      amount: data.amount,
+      currentHP: playerData.hp
+    });
+    
+    if (playerData.hp <= 0) {
+      console.log(`${socket.data.user} was eliminated!`);
+      io.to(socket.data.room).emit("player eliminated", {
+        player: socket.data.user,
+        attacker: data.attacker
+      });
+      
+    }
+  });
 });
 
 
