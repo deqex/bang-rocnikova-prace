@@ -314,8 +314,7 @@ function generateGameData(players) {
     { name: "Stagecoach", details: "9♠" },
     { name: "Wells Fargo", details: "3♥" }
   ];
-  shuffleArray(bangCards);
-  socket.emit("get cards", bangCards);
+  socket.emit("get cards", shuffleArray(bangCards));
 
   const roles = generateRoles(players.length);
   const gameData = players.map((player, index) => {
