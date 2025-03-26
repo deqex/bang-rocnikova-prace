@@ -678,6 +678,15 @@ function renderPlayerCards(gameData) {
       return;
     }
 
+    if (cardSelectionOpen) {
+      const existingMenu = document.querySelector(".card-selection-menu");
+      if (existingMenu) {
+        document.body.removeChild(existingMenu);
+        cardSelectionOpen = false;
+      }
+      return;
+    }
+
     cardSelectionOpen = true;
     
     const cardMenu = document.createElement("div");
