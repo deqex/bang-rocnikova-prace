@@ -28,7 +28,7 @@ let username;
 let numberOfCookies = 0;
 let players = [];
 let isRoomPrivate;
-let gameDeck = []; 
+let gameDeck = []; // This will now be used just for reference
 let playerHand = []; 
 let currentTurn = null; //mozna pak odeber
 let cardSelectionOpen = false; //mozna pak odeber
@@ -648,23 +648,7 @@ function renderPlayerCards(gameData) {
       console.log("not your turn");
       return;
     }
-    
-    if (gameDeck.length > 0) {
-      const drawnCard = gameDeck.pop(); 
-      playerHand.push(drawnCard); 
-      console.log("Drew card:", drawnCard);
-      console.log(`Cards remaining in deck: ${gameDeck.length}`);
-      
-      const currentPlayer = players.find(p => p.username === username);
-      if (currentPlayer) {
-        currentPlayer.cardCount = playerHand.length;
-        socket.emit("update card count", username, playerHand.length);
-      }
-      
-      renderPlayerCards(players);
-    } else {
-      console.log("No cards left in the deck");
-    }
+    socket.emit("draw card");
   });
   
   document.getElementById("playCard").addEventListener("click", () => {
@@ -829,6 +813,24 @@ socket.on("update card count", (playerUsername, cardCount) => {
     if (!cardSelectionOpen && players.length > 0) {
       renderPlayerCards(players);
     }
+  }
+});
+
+socket.on("draw card result", (result) => {
+  if (result.success) {
+    const drawnCard = result.card;
+    playerHand.push(drawnCard);
+    console.log("Drew card:", drawnCard);
+    console.log(`Cards remaining in deck: ${result.remainingCards}`);
+    
+    const currentPlayer = players.find(p => p.username === username);
+    if (currentPlayer) {
+      currentPlayer.cardCount = playerHand.length;
+      socket.emit("update card count", username, playerHand.length);
+    }
+    renderPlayerCards(players);
+  } else {
+    console.log(result.message);
   }
 });
 

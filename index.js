@@ -342,7 +342,8 @@ socket.on("join room", (data) => {
     if (cards) {
       if (socket.data.room) {
         roomsInfo[socket.data.room].cards = cards;
-        console.log(`Cards for room ${socket.data.room}`);
+        roomsInfo[socket.data.room].gameDeck = [...cards]; 
+        console.log(`Cards for room ${socket.data.room} with ${cards.length} cards`);
       }
       
       if (socket.data.room) {
@@ -354,6 +355,32 @@ socket.on("join room", (data) => {
     else if (socket.data.room && roomsInfo[socket.data.room].cards) {
       socket.emit("get cards", roomsInfo[socket.data.room].cards);
     }
+  });
+
+  socket.on("draw card", () => {
+    if (!socket.data.room) return;
+    const room = roomsInfo[socket.data.room];
+    
+    if (!room || !room.gameDeck || room.gameDeck.length === 0) {
+      console.log(`no cards left in deck for room ${socket.data.room} or room does not exist or room doesn't have a deck`);
+      socket.emit("draw card result", { success: false, message: "no cards left in deck (or doesn't have a deck somehow)" });
+      return;
+    }
+    
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`draw card rejected: ${socket.data.user} tried to draw when it's ${room.currentTurn}'s turn`);
+      socket.emit("draw card result", { success: false, message: "not your turn" });
+      return;
+    }
+    
+    const drawnCard = room.gameDeck.pop();
+    console.log(`${socket.data.user} drew card ${drawnCard.name} (${drawnCard.details}) in room ${socket.data.room}`);
+    
+    socket.emit("draw card result", { 
+      success: true, 
+      card: drawnCard,
+      remainingCards: room.gameDeck.length
+    });
   });
 });
 
