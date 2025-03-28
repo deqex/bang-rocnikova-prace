@@ -1145,7 +1145,7 @@ function showMissedDialog(attacker, missedCard) {
         <button id="useBarrel">Use Barrel</button>`;
   }
 
-  if (currentPlayer.champion === "Jourdonnais") { 
+  if (currentPlayer.champion === "Jourdonnais") {  //brasko hochu nezapomen ze capek muze chtit pouzit barrel a joudu tak at se to menu reobjevi
     dialogHTML += `
         <button id="usePassive">Use passive</button>`;
   }
@@ -1188,7 +1188,7 @@ function showMissedDialog(attacker, missedCard) {
   
 
   if (currentPlayer.attributes.includes("Barrel")) {
-    document.getElementById("useBarrel").addEventListener("click", () => {
+    document.getElementById("useBarrel").addEventListener("click", () => { //brasko hochu nezapomen ze capek muze chtit pouzit barrel a joudu tak at se to menu reobjevi
 
       alert("Barrel is not yet implemented");
       socket.emit("take damage", {
