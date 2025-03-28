@@ -34,6 +34,7 @@ let currentTurn = null; //mozna pak odeber
 let cardSelectionOpen = false; //mozna pak odeber
 let targetingMode = false; // Flag to track if we're in targeting mode
 let selectedCard = null; // Track the selected card for targeting
+const listOfWeapons = ["Winchester", "Rev. Carabine", "Schofield", "Remington"];
 
 enterUsername.onclick = () => {
   username = nameInput.value;
@@ -714,7 +715,104 @@ function renderPlayerCards(gameData) {
           enableTargeting();
           return;
         }
+
+        if (card.name === "Schofield") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            const existingWeapon = listOfWeapons.find(weapon => currentPlayer.attributes.includes(weapon));
+            if (existingWeapon) {
+                currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
+            }
+            currentPlayer.attributes.push("Schofield");      
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("update attributes", username, currentPlayer.attributes);
+            console.log("Equipped Schofield: Range increased to 2");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        } 
+
+        if (card.name === "Winchester") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            const existingWeapon = listOfWeapons.find(weapon => currentPlayer.attributes.includes(weapon));
+            if (existingWeapon) {
+                currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
+            }
+            currentPlayer.attributes.push("Winchester");      
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("update attributes", username, currentPlayer.attributes);
+            console.log("Equipped Winchester: Range increased to 5");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
+        if (card.name === "Rev. Carabine") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            const existingWeapon = listOfWeapons.find(weapon => currentPlayer.attributes.includes(weapon));
+            if (existingWeapon) {
+                currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
+            }
+            currentPlayer.attributes.push("Rev. Carabine");      
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("update attributes", username, currentPlayer.attributes);
+            console.log("Equipped Rev. Carabine: Range increased to 4");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
+        if (card.name === "Remington") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            const existingWeapon = listOfWeapons.find(weapon => currentPlayer.attributes.includes(weapon));
+            if (existingWeapon) {
+                currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
+            }
+            currentPlayer.attributes.push("Remington");      
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("update attributes", username, currentPlayer.attributes);
+            console.log("Equipped Remington: Range increased to 3");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
+        if (card.name === "Scope") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            currentPlayer.attributes.push("Scope");      
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("update attributes", username, currentPlayer.attributes);
+            console.log("Equipped Scope: Range increased by 1");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
         
+
         playerHand.splice(index, 1);
         
         const currentPlayer = players.find(p => p.username === username);
@@ -874,6 +972,7 @@ function disableTargeting() {
   selectedCard = null;
 }
 
+// TATO FUNKCE JE AI
 function handleCardTargeting(event) {
   // Get the player card that was clicked
   const targetCard = event.currentTarget;
@@ -894,7 +993,23 @@ function handleCardTargeting(event) {
   
   // Check distance between players
   const distance = calculateDistance(currentPlayer, targetPlayer, players.length);
-  let range = 1;
+
+  let range = 1; 
+  if (currentPlayer.attributes) {
+    if (currentPlayer.attributes.includes("Schofield")) {
+      range = 2;
+    } else if (currentPlayer.attributes.includes("Remington")) {
+      range = 3;
+    } else if (currentPlayer.attributes.includes("Rev. Carabine")) {
+      range = 4;
+    } else if (currentPlayer.attributes.includes("Winchester")) {
+      range = 5;
+    }
+  }
+  
+  if (currentPlayer.attributes.includes("Scope")) {
+    range += 1;
+  }
   
   if (distance > range) {
     alert(`Target is out of range (distance: ${distance}, your range: ${range})`);
@@ -952,6 +1067,7 @@ function showMissedDialog(attacker, missedCard) {
   `;
   
   document.body.appendChild(missedDialog);
+
   document.getElementById("useMissed").addEventListener("click", () => {
     const cardIndex = playerHand.findIndex(card => card.name === missedCard.name && card.details === missedCard.details);
     if (cardIndex !== -1) {
@@ -1207,3 +1323,14 @@ cardMenuStyle.textContent = `
 }
 `;
 document.head.appendChild(cardMenuStyle);
+
+socket.on("update attributes", (playerUsername, attributes) => {
+  const playerToUpdate = players.find(p => p.username === playerUsername);
+  if (playerToUpdate) {
+    playerToUpdate.attributes = attributes;
+    
+    if (players.length > 0) {
+      renderPlayerCards(players);
+    }
+  }
+});
