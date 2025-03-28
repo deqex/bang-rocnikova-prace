@@ -224,7 +224,7 @@ function calculateDistance(playerA, playerB, totalPlayers) {
 //
 
 function generateGameData(players) {
-  const championData = { // generovano pomoci ai abych nemusel opisovat s trochou opravy 
+  const championData = { // generovano pomoci ai 
     "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
     "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
     "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
@@ -830,6 +830,59 @@ function renderPlayerCards(gameData) {
           renderPlayerCards(players);
           return;
         }
+
+        if (card.name === "Barrel") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            currentPlayer.attributes.push("Barrel");      
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("update attributes", username, currentPlayer.attributes);
+            console.log("Equipped Barrel: Draw hearts to dodge Bang!");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
+        if (card.name === "Wells Fargo") { 
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            playerHand.splice(index, 1); 
+            socket.emit("draw card");
+            socket.emit("draw card");
+            socket.emit("draw card");  
+
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("update attributes", username, currentPlayer.attributes);
+            console.log("Equipped Wells Fargo: Draw 3 cards");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
+        if (card.name === "Stagecoach") { 
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            playerHand.splice(index, 1); 
+            socket.emit("draw card");
+            socket.emit("draw card");
+
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("update attributes", username, currentPlayer.attributes);
+            console.log("Equipped Stagecoach: Draw 2 cards");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
         
 
         playerHand.splice(index, 1);
@@ -1012,6 +1065,7 @@ function handleCardTargeting(event) {
   
   // Check distance between players - already includes Mustang effect
   const distance = calculateDistance(currentPlayer, targetPlayer, players.length);
+  
   console.log(`Distance to ${targetUsername}: ${distance}`);
 
   let range = 1; 
@@ -1076,17 +1130,31 @@ function showMissedDialog(attacker, missedCard) {
   const missedDialog = document.createElement("div");
   missedDialog.className = "missed-dialog";
   
-  missedDialog.innerHTML = `
+  const currentPlayer = players.find(p => p.username === username);
+  
+//fakt jsem se snazil to udelat bez ai ale ta if funkce mi nefungovala, takze to udelalo takhle pres dialogHTML
+  let dialogHTML = `
     <div class="missed-dialog-content">
       <h3>${attacker} attacked you with Bang!</h3>
       <p>You have a Missed! card. Do you want to use it?</p>
       <div class="missed-buttons">
         <button id="useMissed">Yes, use Missed!</button>
-        <button id="takeDamage">No, take damage</button>
+        <button id="takeDamage">No, take damage</button>`;
+  if (currentPlayer.attributes.includes("Barrel")) { 
+    dialogHTML += `
+        <button id="useBarrel">Use Barrel</button>`;
+  }
+
+  if (currentPlayer.champion === "Jourdonnais") { 
+    dialogHTML += `
+        <button id="usePassive">Use passive</button>`;
+  }
+  dialogHTML += `
       </div>
     </div>
   `;
   
+  missedDialog.innerHTML = dialogHTML;
   document.body.appendChild(missedDialog);
 
   document.getElementById("useMissed").addEventListener("click", () => {
@@ -1117,7 +1185,23 @@ function showMissedDialog(attacker, missedCard) {
     
     document.body.removeChild(missedDialog);
   });
+  
+
+  if (currentPlayer.attributes.includes("Barrel")) {
+    document.getElementById("useBarrel").addEventListener("click", () => {
+
+      alert("Barrel is not yet implemented");
+      socket.emit("take damage", {
+        amount: 1,
+        attacker: attacker
+      });
+      
+      document.body.removeChild(missedDialog);
+    });
+  }
 }
+
+
 
 socket.on("attack missed", (data) => {
   console.log(`${data.defender} used Missed! to avoid Bang! from ${data.attacker}`);
