@@ -203,12 +203,15 @@ function calculateDistance(playerA, playerB, totalPlayers) {
   const counterClockwise = totalPlayers - clockwise;
 
   // Get the minimum distance
-  const distance = Math.min(clockwise, counterClockwise);
-
-  // Apply character-specific distance modifiers
+  let distance = Math.min(clockwise, counterClockwise);
+  
+  if (playerB.attributes && playerB.attributes.includes("Mustang")) {
+    distance += 1;
+  }
+  
   if (playerA.champion === "Rose Doolan") {
-    // Rose Doolan sees adjacent players at a distance decreased by 1
-    return Math.max(1, distance - 1);
+    // Rose Doolan sees all players at a distance decreased by 1
+    distance = Math.max(1, distance - 1);
   }
 
   return distance;
@@ -796,7 +799,7 @@ function renderPlayerCards(gameData) {
           return;
         }
 
-        if (card.name === "Scope") {
+        if (card.name === "Scope") {//possibly dva scopy checkni pravidla az nebudes linej
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
             currentPlayer.attributes.push("Scope");      
@@ -805,6 +808,22 @@ function renderPlayerCards(gameData) {
             socket.emit("update card count", username, playerHand.length);
             socket.emit("update attributes", username, currentPlayer.attributes);
             console.log("Equipped Scope: Range increased by 1");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
+        if (card.name === "Mustang") { //possibly dva mustangove checkni pravidla az nebudes linej
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            currentPlayer.attributes.push("Mustang");      
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("update attributes", username, currentPlayer.attributes);
+            console.log("Equipped Mustang: Distance increased by 1");
           }
           document.body.removeChild(cardMenu);
           cardSelectionOpen = false;
@@ -991,8 +1010,9 @@ function handleCardTargeting(event) {
     return;
   }
   
-  // Check distance between players
+  // Check distance between players - already includes Mustang effect
   const distance = calculateDistance(currentPlayer, targetPlayer, players.length);
+  console.log(`Distance to ${targetUsername}: ${distance}`);
 
   let range = 1; 
   if (currentPlayer.attributes) {
@@ -1007,7 +1027,7 @@ function handleCardTargeting(event) {
     }
   }
   
-  if (currentPlayer.attributes.includes("Scope")) {
+  if (currentPlayer.attributes && currentPlayer.attributes.includes("Scope")) {
     range += 1;
   }
   
@@ -1016,6 +1036,7 @@ function handleCardTargeting(event) {
     disableTargeting();
     return;
   }
+  
   console.log(`Targeting ${targetUsername} with Bang!`);
   const cardIndex = playerHand.findIndex(card => 
     card.name === selectedCard.name && card.details === selectedCard.details);
