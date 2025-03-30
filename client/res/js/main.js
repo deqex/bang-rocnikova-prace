@@ -29,7 +29,7 @@ let numberOfCookies = 0;
 let players = [];
 let isRoomPrivate;
 let gameDeck = []; // This will now be used just for reference
-let playerHand = []; 
+let playerHand = [];
 let currentTurn = null; //mozna pak odeber
 let cardSelectionOpen = false; //mozna pak odeber
 let targetingMode = false; // Flag to track if we're in targeting mode
@@ -204,11 +204,11 @@ function calculateDistance(playerA, playerB, totalPlayers) {
 
   // Get the minimum distance
   let distance = Math.min(clockwise, counterClockwise);
-  
+
   if (playerB.attributes && playerB.attributes.includes("Mustang")) {
     distance += 1;
   }
-  
+
   if (playerA.champion === "Rose Doolan") {
     // Rose Doolan sees all players at a distance decreased by 1
     distance = Math.max(1, distance - 1);
@@ -362,23 +362,23 @@ function shuffleArray(array) {
 socket.on("game started", (gameData) => {
   const sheriff = gameData.find(player => player.role === "Sheriff");
   currentTurn = sheriff ? sheriff.username : null;
-  
+
   if (gameDeck.length === 0) {
     socket.emit("get cards");
   } else {
     dealInitialCards(gameData);
   }
   renderPlayerCards(gameData);
-  
+
   if (currentTurn) {
     socket.emit("update turn", currentTurn);
   }
 });
 
 socket.on("get cards", (cards) => {
-  gameDeck = shuffleArray([...cards]); 
+  gameDeck = shuffleArray([...cards]);
   console.log("Received deck with", gameDeck.length, "cards");
-  
+
   const currentPlayerData = players.find(p => p.username === username);
   if (currentPlayerData) {
     dealInitialCards(players);
@@ -392,30 +392,30 @@ function dealInitialCards(gameData) {
       player.cardCount = 0;
     }
   });
-  
+
   const currentPlayer = gameData.find(player => player.username === username);
   if (currentPlayer) {
     const cardsToDeal = currentPlayer.maxHP;
     currentPlayer.cards = [];
-    
+
     for (let i = 0; i < cardsToDeal && gameDeck.length > 0; i++) { //shoutout stepan
       const card = gameDeck.pop();
       currentPlayer.cards.push(card);
     }
-    
-    playerHand = [...currentPlayer.cards]; 
+
+    playerHand = [...currentPlayer.cards];
     currentPlayer.cardCount = playerHand.length;
     console.log(`Dealt ${playerHand.length} cards to you`);
     console.log("Your hand:", playerHand);
   }
-  
+
   gameData.forEach(player => {
     if (player.username !== username) {
       player.cardCount = player.maxHP;
     }
   });
-  
-  players = gameData; 
+
+  players = gameData;
 }
 
 //
@@ -431,7 +431,7 @@ function renderPlayerCards(gameData) {
 
   const currentPlayerData = gameData.find(player => player.username === username);
   if (!currentPlayerData) return;
-  
+
   // Update players array
   players = gameData;
 
@@ -468,7 +468,7 @@ function renderPlayerCards(gameData) {
 
   // Create the central table
   const table = document.createElement("div");
-  table.className = "game-table"; 
+  table.className = "game-table";
   table.innerHTML = `
     <div class="table-content">
       <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
@@ -587,7 +587,7 @@ function renderPlayerCards(gameData) {
     if (player.role === "Sheriff") {
       playerCard.classList.add("sheriff");
     }
-    
+
     // Add active turn indicator
     if (isCurrentTurn) {
       playerCard.classList.add("active-turn");
@@ -638,9 +638,9 @@ function renderPlayerCards(gameData) {
 
   const controls = document.createElement("div");
   controls.className = "game-controls";
-  
+
   const isPlayerTurn = currentTurn === username;
-  
+
   controls.innerHTML = `
     <button id="endTurn" ${!isPlayerTurn ? 'disabled' : ''}>End Turn</button>
     <button id="playCard" ${!isPlayerTurn ? 'disabled' : ''}>Play Card</button>
@@ -655,13 +655,13 @@ function renderPlayerCards(gameData) {
     }
     socket.emit("draw card");
   });
-  
+
   document.getElementById("playCard").addEventListener("click", () => {
     if (currentTurn !== username) {
       console.log("Not your turn");
       return;
     }
-    
+
     if (playerHand.length === 0) { //lowkey pak mozna dej do jednoho ifu jsem linej rn
       console.log("No cards to play");
       return;
@@ -677,10 +677,10 @@ function renderPlayerCards(gameData) {
     }
 
     cardSelectionOpen = true;
-    
+
     const cardMenu = document.createElement("div");
     cardMenu.className = "card-selection-menu";
-    
+
     const menuHeader = document.createElement("div");
     menuHeader.className = "card-menu-header";
     menuHeader.innerHTML = `
@@ -688,10 +688,10 @@ function renderPlayerCards(gameData) {
       <button id="closeCardMenu">✕</button>
     `;
     cardMenu.appendChild(menuHeader);
-    
+
     const cardContainer = document.createElement("div");
     cardContainer.className = "card-container";
-    
+
     playerHand.forEach((card, index) => {
       const cardElement = document.createElement("div");
       cardElement.className = "card-item";
@@ -699,22 +699,22 @@ function renderPlayerCards(gameData) {
         <div class="card-name">${card.name}</div>
         <div class="card-details">${card.details}</div>
       `;
-      
+
       cardElement.addEventListener("click", () => {
         console.log(`Selected card: ${card.name} (${card.details})`);
-        
+
         if (card.name === "Bang!") {
           targetingMode = true;
           selectedCard = card;
           document.body.removeChild(cardMenu);
           cardSelectionOpen = false;
-          
+
           const targetInstruction = document.createElement("div");
           targetInstruction.id = "targetInstruction";
           targetInstruction.className = "target-instruction";
           targetInstruction.innerHTML = `<p>select a player to target</p>`;
           document.body.appendChild(targetInstruction);
-          
+
           enableTargeting();
           return;
         }
@@ -724,9 +724,9 @@ function renderPlayerCards(gameData) {
           if (currentPlayer) {
             const existingWeapon = listOfWeapons.find(weapon => currentPlayer.attributes.includes(weapon));
             if (existingWeapon) {
-                currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
+              currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
             }
-            currentPlayer.attributes.push("Schofield");      
+            currentPlayer.attributes.push("Schofield");
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
@@ -737,16 +737,16 @@ function renderPlayerCards(gameData) {
           cardSelectionOpen = false;
           renderPlayerCards(players);
           return;
-        } 
+        }
 
         if (card.name === "Winchester") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
             const existingWeapon = listOfWeapons.find(weapon => currentPlayer.attributes.includes(weapon));
             if (existingWeapon) {
-                currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
+              currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
             }
-            currentPlayer.attributes.push("Winchester");      
+            currentPlayer.attributes.push("Winchester");
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
@@ -764,9 +764,9 @@ function renderPlayerCards(gameData) {
           if (currentPlayer) {
             const existingWeapon = listOfWeapons.find(weapon => currentPlayer.attributes.includes(weapon));
             if (existingWeapon) {
-                currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
+              currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
             }
-            currentPlayer.attributes.push("Rev. Carabine");      
+            currentPlayer.attributes.push("Rev. Carabine");
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
@@ -784,9 +784,9 @@ function renderPlayerCards(gameData) {
           if (currentPlayer) {
             const existingWeapon = listOfWeapons.find(weapon => currentPlayer.attributes.includes(weapon));
             if (existingWeapon) {
-                currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
+              currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
             }
-            currentPlayer.attributes.push("Remington");      
+            currentPlayer.attributes.push("Remington");
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
@@ -802,7 +802,7 @@ function renderPlayerCards(gameData) {
         if (card.name === "Scope") {//possibly dva scopy checkni pravidla az nebudes linej
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
-            currentPlayer.attributes.push("Scope");      
+            currentPlayer.attributes.push("Scope");
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
@@ -818,7 +818,7 @@ function renderPlayerCards(gameData) {
         if (card.name === "Mustang") { //possibly dva mustangove checkni pravidla az nebudes linej
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
-            currentPlayer.attributes.push("Mustang");      
+            currentPlayer.attributes.push("Mustang");
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
@@ -834,7 +834,7 @@ function renderPlayerCards(gameData) {
         if (card.name === "Barrel") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
-            currentPlayer.attributes.push("Barrel");      
+            currentPlayer.attributes.push("Barrel");
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
@@ -847,13 +847,13 @@ function renderPlayerCards(gameData) {
           return;
         }
 
-        if (card.name === "Wells Fargo") { 
+        if (card.name === "Wells Fargo") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
-            playerHand.splice(index, 1); 
+            playerHand.splice(index, 1);
             socket.emit("draw card");
             socket.emit("draw card");
-            socket.emit("draw card");  
+            socket.emit("draw card");
 
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
@@ -866,10 +866,10 @@ function renderPlayerCards(gameData) {
           return;
         }
 
-        if (card.name === "Stagecoach") { 
+        if (card.name === "Stagecoach") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
-            playerHand.splice(index, 1); 
+            playerHand.splice(index, 1);
             socket.emit("draw card");
             socket.emit("draw card");
 
@@ -883,34 +883,34 @@ function renderPlayerCards(gameData) {
           renderPlayerCards(players);
           return;
         }
-        
+
 
         playerHand.splice(index, 1);
-        
+
         const currentPlayer = players.find(p => p.username === username);
         if (currentPlayer) {
           currentPlayer.cardCount = playerHand.length;
           socket.emit("update card count", username, playerHand.length);
         }
-        
+
         document.body.removeChild(cardMenu);
         cardSelectionOpen = false;
-        
+
         renderPlayerCards(players);
       });
-      
+
       cardContainer.appendChild(cardElement);
     });
-    
+
     cardMenu.appendChild(cardContainer);
     document.body.appendChild(cardMenu);
-    
+
     document.getElementById("closeCardMenu").addEventListener("click", () => {
       document.body.removeChild(cardMenu);
       cardSelectionOpen = false;
     });
   });
-  
+
 
 
   document.getElementById("endTurn").addEventListener("click", () => {
@@ -918,7 +918,7 @@ function renderPlayerCards(gameData) {
       console.log("Not your turn");
       return;
     }
-    
+
     // zacatek ai
     const currentPlayerIndex = players.findIndex(p => p.username === username);
     const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
@@ -926,7 +926,7 @@ function renderPlayerCards(gameData) {
     currentTurn = nextPlayer.username;
     socket.emit("update turn", currentTurn);
     // konec ai
-    
+
     renderPlayerCards(players);
     console.log(`Ended turn. It's now ${nextPlayer.username}'s turn.`);
   });
@@ -987,7 +987,7 @@ socket.on("update turn", (playerUsername) => {
   if (players.length > 0) {
     renderPlayerCards(players);
   }
-  
+
   if (currentTurn === username) {
     console.log("It's your turn!");
   }
@@ -997,7 +997,7 @@ socket.on("update card count", (playerUsername, cardCount) => {
   const playerToUpdate = players.find(p => p.username === playerUsername);
   if (playerToUpdate) {
     playerToUpdate.cardCount = cardCount;
-    
+
     if (!cardSelectionOpen && players.length > 0) {
       renderPlayerCards(players);
     }
@@ -1010,7 +1010,7 @@ socket.on("draw card result", (result) => {
     playerHand.push(drawnCard);
     console.log("Drew card:", drawnCard);
     console.log(`Cards remaining in deck: ${result.remainingCards}`);
-    
+
     const currentPlayer = players.find(p => p.username === username);
     if (currentPlayer) {
       currentPlayer.cardCount = playerHand.length;
@@ -1048,27 +1048,27 @@ function disableTargeting() {
 function handleCardTargeting(event) {
   // Get the player card that was clicked
   const targetCard = event.currentTarget;
-  
+
   // Find the username in the card
   const nameElement = targetCard.querySelector('.player-name');
   const targetUsername = nameElement.textContent.replace(' (Turn)', ''); // Remove turn indicator if present
-  
+
   // Find player data for target and current player
   const targetPlayer = players.find(p => p.username === targetUsername);
   const currentPlayer = players.find(p => p.username === username);
-  
+
   if (!targetPlayer || !currentPlayer) {
     console.log("Could not find player data");
     disableTargeting();
     return;
   }
-  
+
   // Check distance between players - already includes Mustang effect
   const distance = calculateDistance(currentPlayer, targetPlayer, players.length);
-  
+
   console.log(`Distance to ${targetUsername}: ${distance}`);
 
-  let range = 1; 
+  let range = 1;
   if (currentPlayer.attributes) {
     if (currentPlayer.attributes.includes("Schofield")) {
       range = 2;
@@ -1080,43 +1080,43 @@ function handleCardTargeting(event) {
       range = 5;
     }
   }
-  
+
   if (currentPlayer.attributes && currentPlayer.attributes.includes("Scope")) {
     range += 1;
   }
-  
+
   if (distance > range) {
     alert(`Target is out of range (distance: ${distance}, your range: ${range})`);
     disableTargeting();
     return;
   }
-  
+
   console.log(`Targeting ${targetUsername} with Bang!`);
-  const cardIndex = playerHand.findIndex(card => 
+  const cardIndex = playerHand.findIndex(card =>
     card.name === selectedCard.name && card.details === selectedCard.details);
-  
+
   if (cardIndex !== -1) {
     playerHand.splice(cardIndex, 1);
     currentPlayer.cardCount = playerHand.length;
     socket.emit("update card count", username, playerHand.length);
   }
-  
+
   socket.emit("play bang", {
     target: targetUsername,
     card: selectedCard
   });
-  
+
   disableTargeting();
   renderPlayerCards(players);
 }
 
 socket.on("bang attack", (data) => {
   if (data.target !== username) return;
-  
+
   console.log(`${data.attacker} attacked you with Bang!`);
   const missedCard = playerHand.find(card => card.name === "Missed!");
-  
-  if (missedCard) {
+
+  if (missedCard || currentPlayer.champion === "Jourdonnais" || currentPlayer.attributes.includes("Barrel")) {
     showMissedDialog(data.attacker, missedCard);
   } else {
     socket.emit("take damage", {
@@ -1129,10 +1129,10 @@ socket.on("bang attack", (data) => {
 function showMissedDialog(attacker, missedCard) {
   const missedDialog = document.createElement("div");
   missedDialog.className = "missed-dialog";
-  
+
   const currentPlayer = players.find(p => p.username === username);
-  
-//fakt jsem se snazil to udelat bez ai ale ta if funkce mi nefungovala, takze to udelalo takhle pres dialogHTML
+
+  //fakt jsem se snazil to udelat bez ai ale ta if funkce mi nefungovala, takze to udelalo takhle pres dialogHTML
   let dialogHTML = `
     <div class="missed-dialog-content">
       <h3>${attacker} attacked you with Bang!</h3>
@@ -1140,7 +1140,7 @@ function showMissedDialog(attacker, missedCard) {
       <div class="missed-buttons">
         <button id="useMissed">Yes, use Missed!</button>
         <button id="takeDamage">No, take damage</button>`;
-  if (currentPlayer.attributes.includes("Barrel")) { 
+  if (currentPlayer.attributes.includes("Barrel")) {
     dialogHTML += `
         <button id="useBarrel">Use Barrel</button>`;
   }
@@ -1153,7 +1153,7 @@ function showMissedDialog(attacker, missedCard) {
       </div>
     </div>
   `;
-  
+
   missedDialog.innerHTML = dialogHTML;
   document.body.appendChild(missedDialog);
 
@@ -1167,36 +1167,62 @@ function showMissedDialog(attacker, missedCard) {
         socket.emit("update card count", username, playerHand.length);
       }
     }
-    
+
     socket.emit("use missed", {
       attacker: attacker,
       card: missedCard
     });
-    
+
     document.body.removeChild(missedDialog);
     renderPlayerCards(players);
   });
-  
+
   document.getElementById("takeDamage").addEventListener("click", () => {
     socket.emit("take damage", {
       amount: 1,
       attacker: attacker
     });
-    
+
     document.body.removeChild(missedDialog);
   });
-  
+
 
   if (currentPlayer.attributes.includes("Barrel")) {
-    document.getElementById("useBarrel").addEventListener("click", () => { //brasko hochu nezapomen ze capek muze chtit pouzit barrel a joudu tak at se to menu reobjevi
+    document.getElementById("useBarrel").addEventListener("click", () => { 
 
-      alert("Barrel is not yet implemented");
-      socket.emit("take damage", {
-        amount: 1,
-        attacker: attacker
-      });
-      
-      document.body.removeChild(missedDialog);
+      const barrelCard = gameDeck.pop();
+      console.log(barrelCard);
+      if (barrelCard.details.includes("♥")) {
+        console.log("Barrel card is a heart");
+        socket.emit("use missed", {
+          attacker: attacker,
+          card: barrelCard
+        });
+        document.body.removeChild(missedDialog);
+      } else {
+        console.log("Barrel card is not a heart");
+        document.getElementById("useBarrel").disabled = true; // bro muze inspect elementnout a odebrat ten disabled
+      }
+    });
+  }
+
+
+  if (currentPlayer.champion === "Jourdonnais") {
+    document.getElementById("usePassive").addEventListener("click", () => { 
+
+      const barrelCard = gameDeck.pop();
+      console.log(barrelCard);
+      if (barrelCard.details.includes("♥")) {
+        console.log("Card is heart");
+        socket.emit("use missed", {
+          attacker: attacker,
+          card: barrelCard
+        });
+        document.body.removeChild(missedDialog);
+      } else {
+        console.log("Card is not a heart");
+        document.getElementById("useBarrel").disabled = true; // bro muze inspect elementnout a odebrat ten disabled
+      }
     });
   }
 }
@@ -1211,7 +1237,7 @@ socket.on("attack missed", (data) => {
 //
 socket.on("player damaged", (data) => {
   console.log(`${data.player} took ${data.amount} damage from ${data.attacker}, HP now: ${data.currentHP}`);
-  
+
   const playerToUpdate = players.find(p => p.username === data.player);
   if (playerToUpdate) {
     playerToUpdate.hp = data.currentHP;
@@ -1221,14 +1247,14 @@ socket.on("player damaged", (data) => {
 
 socket.on("player eliminated", (data) => {
   console.log(`${data.player} was eliminated by ${data.attacker}`);
-  
+
   const playerToUpdate = players.find(p => p.username === data.player);
   if (playerToUpdate) {
     playerToUpdate.hp = 0;
     playerToUpdate.eliminated = true;
     renderPlayerCards(players);
   }
-  
+
   if (data.player === username) {
     const controls = document.querySelector('.game-controls');
     controls.style.display = 'none';
@@ -1433,7 +1459,7 @@ socket.on("update attributes", (playerUsername, attributes) => {
   const playerToUpdate = players.find(p => p.username === playerUsername);
   if (playerToUpdate) {
     playerToUpdate.attributes = attributes;
-    
+
     if (players.length > 0) {
       renderPlayerCards(players);
     }
