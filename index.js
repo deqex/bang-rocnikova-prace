@@ -453,6 +453,25 @@ io.on("connection", (socket) => {
       attacker: data.attacker,
       amount: data.amount,
       currentHP: playerData.hp
+    })
+  });
+
+  socket.on("heal self", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+    if (!playerData) return;
+
+    playerData.hp += data.amount;
+    console.log(`${socket.data.user} healed for  ${data.amount}, HP now: ${playerData.hp}`);
+
+    io.to(socket.data.room).emit("player healed", {
+      player: socket.data.user,
+      amount: data.amount,
+      currentHP: playerData.hp
     });
 
     if (playerData.hp <= 0) {

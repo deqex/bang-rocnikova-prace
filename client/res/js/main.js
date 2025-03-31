@@ -847,6 +847,24 @@ function renderPlayerCards(gameData) {
           return;
         }
 
+        if (card.name === "Beer") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            currentPlayer.hp = currentPlayer.hp + 1;
+            socket.emit("heal self", {
+              amount: 1,
+            });
+            socket.emit("update card count", username, playerHand.length);
+            console.log("Drank beer, healing 1 hp!");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
         if (card.name === "Wells Fargo") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
@@ -1237,6 +1255,16 @@ socket.on("attack missed", (data) => {
 //
 socket.on("player damaged", (data) => {
   console.log(`${data.player} took ${data.amount} damage from ${data.attacker}, HP now: ${data.currentHP}`);
+
+  const playerToUpdate = players.find(p => p.username === data.player);
+  if (playerToUpdate) {
+    playerToUpdate.hp = data.currentHP;
+    renderPlayerCards(players);
+  }
+});
+
+socket.on("player healed", (data) => {
+  console.log(`${data.player} healed ${data.amount}, HP now: ${data.currentHP}`);
 
   const playerToUpdate = players.find(p => p.username === data.player);
   if (playerToUpdate) {
