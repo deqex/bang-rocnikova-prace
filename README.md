@@ -9,3 +9,4 @@ veci na kteru zapomenes:
 - possibly ten socket on dole je useless uz jsem zapomnel ale taky ne koukni sse na to
 - play cards oteviratelny mimo tah
 - playcard otevreny pak end turn a co kdyz pak muzes hrat logicky ne ale jako co kdyby
+- usebarrel jde podvadet pres odebrani disabled
