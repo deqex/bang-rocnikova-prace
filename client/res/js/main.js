@@ -1134,6 +1134,7 @@ socket.on("bang attack", (data) => {
   console.log(`${data.attacker} attacked you with Bang!`);
   const missedCard = playerHand.find(card => card.name === "Missed!");
 
+    const currentPlayer = players.find(p => p.username === username);
   if (missedCard || currentPlayer.champion === "Jourdonnais" || currentPlayer.attributes.includes("Barrel")) {
     showMissedDialog(data.attacker, missedCard);
   } else {
@@ -1156,8 +1157,13 @@ function showMissedDialog(attacker, missedCard) {
       <h3>${attacker} attacked you with Bang!</h3>
       <p>You have a Missed! card. Do you want to use it?</p>
       <div class="missed-buttons">
-        <button id="useMissed">Yes, use Missed!</button>
-        <button id="takeDamage">No, take damage</button>`;
+      <button id="takeDamage">No, take damage</button>`;
+  
+  if (missedCard) {
+    dialogHTML +=`
+          <button id="useMissed">Yes, use Missed!</button>`;
+  }
+        
   if (currentPlayer.attributes.includes("Barrel")) {
     dialogHTML += `
         <button id="useBarrel">Use Barrel</button>`;
@@ -1175,7 +1181,8 @@ function showMissedDialog(attacker, missedCard) {
   missedDialog.innerHTML = dialogHTML;
   document.body.appendChild(missedDialog);
 
-  document.getElementById("useMissed").addEventListener("click", () => {
+  if (missedCard) {
+      document.getElementById("useMissed").addEventListener("click", () => {
     const cardIndex = playerHand.findIndex(card => card.name === missedCard.name && card.details === missedCard.details);
     if (cardIndex !== -1) {
       playerHand.splice(cardIndex, 1);
@@ -1194,6 +1201,8 @@ function showMissedDialog(attacker, missedCard) {
     document.body.removeChild(missedDialog);
     renderPlayerCards(players);
   });
+  }
+
 
   document.getElementById("takeDamage").addEventListener("click", () => {
     socket.emit("take damage", {
@@ -1219,7 +1228,7 @@ function showMissedDialog(attacker, missedCard) {
         document.body.removeChild(missedDialog);
       } else {
         console.log("Barrel card is not a heart");
-        document.getElementById("useBarrel").disabled = true; // bro muze inspect elementnout a odebrat ten disabled
+        document.getElementById("useBarrel").style.display = "none"; // BACHA NA INSPECT ELEMENT PAK VYRES!!
       }
     });
   }
@@ -1239,7 +1248,7 @@ function showMissedDialog(attacker, missedCard) {
         document.body.removeChild(missedDialog);
       } else {
         console.log("Card is not a heart");
-        document.getElementById("useBarrel").disabled = true; // bro muze inspect elementnout a odebrat ten disabled
+        document.getElementById("useBarrel").style.display = "none"; // bro muze inspect elementnout
       }
     });
   }

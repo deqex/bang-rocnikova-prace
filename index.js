@@ -403,6 +403,9 @@ io.on("connection", (socket) => {
     });
   });
 
+
+
+
   socket.on("play bang", (data) => {
     if (!socket.data.room) return;
 
@@ -454,6 +457,17 @@ io.on("connection", (socket) => {
       amount: data.amount,
       currentHP: playerData.hp
     })
+
+    if (playerData.champion === "Bart Cassidy") {
+      const drawnCard = room.gameDeck.pop();
+      console.log(`${socket.data.user} drew card ${drawnCard.name} (${drawnCard.details}) in room ${socket.data.room}`);
+
+      socket.emit("draw card result", {
+        success: true,
+        card: drawnCard,
+        remainingCards: room.gameDeck.length
+      });
+    }
   });
 
   socket.on("heal self", (data) => {
