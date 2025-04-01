@@ -241,6 +241,7 @@ function generateGameData(players) {
     "Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
     "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
     "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
+    "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
     "Vulture Sam": { baseHP: 4, description: "Takes all cards of eliminated players" }
   };
 
@@ -907,6 +908,39 @@ function renderPlayerCards(gameData) {
           return;
         }
 
+        if (card.name === "Indians!") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("play indians", {
+              card: card
+            });
+            console.log("Played Indians! against all other players");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
+        if (card.name === "Gatling") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("play gatling", {
+              card: card
+            });
+            console.log("Played Gatling against all other players");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
 
         playerHand.splice(index, 1);
 
@@ -1304,6 +1338,93 @@ socket.on("player eliminated", (data) => {
     eliminationMsg.className = 'elimination-message';
     eliminationMsg.innerHTML = `<h2>You have been eliminated!</h2>`;
     document.body.appendChild(eliminationMsg);
+  }
+});
+
+socket.on("indians attack", (data) => {
+  if (data.attacker === username) return;
+
+  console.log(`${data.attacker} played Indians! - all players must discard a Bang! or lose 1 life point`);
+  const bangCard = playerHand.find(card => card.name === "Bang!");
+
+  if (bangCard) {
+    showIndiansDialog(data.attacker, bangCard);
+  } else {
+    socket.emit("take damage", {
+      amount: 1,
+      attacker: data.attacker
+    });
+  }
+});
+
+function showIndiansDialog(attacker, bangCard) {
+  const indiansDialog = document.createElement("div");
+  indiansDialog.className = "missed-dialog"; // Reusing the missed dialog styling
+  
+  const dialogHTML = `
+    <div class="missed-dialog-content">
+      <h3>${attacker} played Indians!</h3>
+      <p>You can discard a Bang! card to defend yourself.</p>
+      <div class="missed-buttons">
+        <button id="takeDamage">Take damage</button>
+        ${bangCard ? `<button id="useBang">Use Bang!</button>` : ''}
+      </div>
+    </div>
+  `;
+  
+  indiansDialog.innerHTML = dialogHTML;
+  document.body.appendChild(indiansDialog);
+  
+  if (bangCard) {
+    document.getElementById("useBang").addEventListener("click", () => {
+      const cardIndex = playerHand.findIndex(card => card.name === bangCard.name && card.details === bangCard.details);
+      if (cardIndex !== -1) {
+        playerHand.splice(cardIndex, 1);
+        const currentPlayer = players.find(p => p.username === username);
+        if (currentPlayer) {
+          currentPlayer.cardCount = playerHand.length;
+          socket.emit("update card count", username, playerHand.length);
+        }
+      }
+      
+      socket.emit("defend indians", {
+        attacker: attacker,
+        card: bangCard
+      });
+      
+      document.body.removeChild(indiansDialog);
+      renderPlayerCards(players);
+    });
+  }
+  
+  document.getElementById("takeDamage").addEventListener("click", () => {
+    socket.emit("take damage", {
+      amount: 1,
+      attacker: attacker
+    });
+    
+    document.body.removeChild(indiansDialog);
+  });
+}
+
+socket.on("indians defended", (data) => {
+  console.log(`${data.defender} used Bang! to defend against Indians! from ${data.attacker}`);
+});
+
+socket.on("gatling attack", (data) => {
+  if (data.attacker === username) return;
+
+  console.log(`${data.attacker} played Gatling - all players must discard a Missed! or lose 1 life point`);
+  const missedCard = playerHand.find(card => card.name === "Missed!");
+  const currentPlayer = players.find(p => p.username === username);
+
+  if (missedCard || (currentPlayer && (currentPlayer.champion === "Jourdonnais" || currentPlayer.attributes.includes("Barrel")))) {
+    showMissedDialog(data.attacker, missedCard);
+  } else {
+    socket.emit("take damage", {
+      amount: 1,
+      attacker: data.attacker
+    });
   }
 });
 

@@ -425,6 +425,56 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("play indians", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Indians play rejected: ${socket.data.user} tried to play Indians! when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+
+    console.log(`${socket.data.user} played Indians! in room ${socket.data.room}`);
+    io.to(socket.data.room).emit("indians attack", {
+      attacker: socket.data.user,
+      card: data.card
+    });
+  });
+
+  socket.on("defend indians", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    console.log(`${socket.data.user} used Bang! to defend against Indians! from ${data.attacker} in room ${socket.data.room}`);
+
+    io.to(socket.data.room).emit("indians defended", {
+      defender: socket.data.user,
+      attacker: data.attacker
+    });
+  });
+
+  socket.on("play gatling", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Gatling play rejected: ${socket.data.user} tried to play Gatling when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+
+    console.log(`${socket.data.user} played Gatling in room ${socket.data.room}`);
+    io.to(socket.data.room).emit("gatling attack", {
+      attacker: socket.data.user,
+      card: data.card
+    });
+  });
+
   socket.on("use missed", (data) => {
     if (!socket.data.room) return;
 
