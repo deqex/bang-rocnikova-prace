@@ -209,6 +209,10 @@ function calculateDistance(playerA, playerB, totalPlayers) {
     distance += 1;
   }
 
+  if (playerB.champion && playerB.champion === "Paul Regret") {
+    distance += 1;
+  }
+
   if (playerA.champion === "Rose Doolan") {
     // Rose Doolan sees all players at a distance decreased by 1
     distance = Math.max(1, distance - 1);
@@ -231,6 +235,7 @@ function generateGameData(players) {
     "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
     "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
     "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
+    "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
     "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
     "Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
     "Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
