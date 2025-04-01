@@ -1253,7 +1253,7 @@ function showMissedDialog(attacker, missedCard) {
         document.body.removeChild(missedDialog);
       } else {
         console.log("Card is not a heart");
-        document.getElementById("useBarrel").style.display = "none"; // bro muze inspect elementnout
+        document.getElementById("usePassive").style.display = "none"; // bro muze inspect elementnout
       }
     });
   }
