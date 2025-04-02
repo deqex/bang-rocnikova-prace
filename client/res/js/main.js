@@ -209,6 +209,10 @@ function calculateDistance(playerA, playerB, totalPlayers) {
     distance += 1;
   }
 
+  if (playerB.champion && playerB.champion === "Paul Regret") {
+    distance += 1;
+  }
+
   if (playerA.champion === "Rose Doolan") {
     // Rose Doolan sees all players at a distance decreased by 1
     distance = Math.max(1, distance - 1);
@@ -231,11 +235,13 @@ function generateGameData(players) {
     "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
     "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
     "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
+    "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
     "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
     "Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
     "Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
     "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
     "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
+    "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
     "Vulture Sam": { baseHP: 4, description: "Takes all cards of eliminated players" }
   };
 
@@ -879,6 +885,24 @@ function renderPlayerCards(gameData) {
           return;
         }
 
+        if (card.name === "Beer") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            currentPlayer.hp = currentPlayer.hp + 1;
+            socket.emit("heal self", {
+              amount: 1,
+            });
+            socket.emit("update card count", username, playerHand.length);
+            console.log("Drank beer, healing 1 hp!");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
         if (card.name === "Wells Fargo") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
@@ -916,6 +940,39 @@ function renderPlayerCards(gameData) {
           return;
         }
 
+        if (card.name === "Indians!") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("play indians", {
+              card: card
+            });
+            console.log("Played Indians! against all other players");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
+        if (card.name === "Gatling") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("play gatling", {
+              card: card
+            });
+            console.log("Played Gatling against all other players");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
 
         playerHand.splice(index, 1);
 
@@ -1148,6 +1205,7 @@ socket.on("bang attack", (data) => {
   console.log(`${data.attacker} attacked you with Bang!`);
   const missedCard = playerHand.find(card => card.name === "Missed!");
 
+    const currentPlayer = players.find(p => p.username === username);
   if (missedCard || currentPlayer.champion === "Jourdonnais" || currentPlayer.attributes.includes("Barrel")) {
     showMissedDialog(data.attacker, missedCard);
   } else {
@@ -1170,8 +1228,13 @@ function showMissedDialog(attacker, missedCard) {
       <h3>${attacker} attacked you with Bang!</h3>
       <p>You have a Missed! card. Do you want to use it?</p>
       <div class="missed-buttons">
-        <button id="useMissed">Yes, use Missed!</button>
-        <button id="takeDamage">No, take damage</button>`;
+      <button id="takeDamage">No, take damage</button>`;
+  
+  if (missedCard) {
+    dialogHTML +=`
+          <button id="useMissed">Yes, use Missed!</button>`;
+  }
+        
   if (currentPlayer.attributes.includes("Barrel")) {
     dialogHTML += `
         <button id="useBarrel">Use Barrel</button>`;
@@ -1189,7 +1252,8 @@ function showMissedDialog(attacker, missedCard) {
   missedDialog.innerHTML = dialogHTML;
   document.body.appendChild(missedDialog);
 
-  document.getElementById("useMissed").addEventListener("click", () => {
+  if (missedCard) {
+      document.getElementById("useMissed").addEventListener("click", () => {
     const cardIndex = playerHand.findIndex(card => card.name === missedCard.name && card.details === missedCard.details);
     if (cardIndex !== -1) {
       playerHand.splice(cardIndex, 1);
@@ -1208,6 +1272,8 @@ function showMissedDialog(attacker, missedCard) {
     document.body.removeChild(missedDialog);
     renderPlayerCards(players);
   });
+  }
+
 
   document.getElementById("takeDamage").addEventListener("click", () => {
     socket.emit("take damage", {
@@ -1233,7 +1299,7 @@ function showMissedDialog(attacker, missedCard) {
         document.body.removeChild(missedDialog);
       } else {
         console.log("Barrel card is not a heart");
-        document.getElementById("useBarrel").disabled = true; // bro muze inspect elementnout a odebrat ten disabled
+        document.getElementById("useBarrel").style.display = "none"; // BACHA NA INSPECT ELEMENT PAK VYRES!!
       }
     });
   }
@@ -1253,7 +1319,7 @@ function showMissedDialog(attacker, missedCard) {
         document.body.removeChild(missedDialog);
       } else {
         console.log("Card is not a heart");
-        document.getElementById("useBarrel").disabled = true; // bro muze inspect elementnout a odebrat ten disabled
+        document.getElementById("usePassive").style.display = "none"; // bro muze inspect elementnout
       }
     });
   }
@@ -1269,6 +1335,16 @@ socket.on("attack missed", (data) => {
 //
 socket.on("player damaged", (data) => {
   console.log(`${data.player} took ${data.amount} damage from ${data.attacker}, HP now: ${data.currentHP}`);
+
+  const playerToUpdate = players.find(p => p.username === data.player);
+  if (playerToUpdate) {
+    playerToUpdate.hp = data.currentHP;
+    renderPlayerCards(players);
+  }
+});
+
+socket.on("player healed", (data) => {
+  console.log(`${data.player} healed ${data.amount}, HP now: ${data.currentHP}`);
 
   const playerToUpdate = players.find(p => p.username === data.player);
   if (playerToUpdate) {
@@ -1294,6 +1370,93 @@ socket.on("player eliminated", (data) => {
     eliminationMsg.className = 'elimination-message';
     eliminationMsg.innerHTML = `<h2>You have been eliminated!</h2>`;
     document.body.appendChild(eliminationMsg);
+  }
+});
+
+socket.on("indians attack", (data) => {
+  if (data.attacker === username) return;
+
+  console.log(`${data.attacker} played Indians! - all players must discard a Bang! or lose 1 life point`);
+  const bangCard = playerHand.find(card => card.name === "Bang!");
+
+  if (bangCard) {
+    showIndiansDialog(data.attacker, bangCard);
+  } else {
+    socket.emit("take damage", {
+      amount: 1,
+      attacker: data.attacker
+    });
+  }
+});
+
+function showIndiansDialog(attacker, bangCard) {
+  const indiansDialog = document.createElement("div");
+  indiansDialog.className = "missed-dialog"; // Reusing the missed dialog styling
+  
+  const dialogHTML = `
+    <div class="missed-dialog-content">
+      <h3>${attacker} played Indians!</h3>
+      <p>You can discard a Bang! card to defend yourself.</p>
+      <div class="missed-buttons">
+        <button id="takeDamage">Take damage</button>
+        ${bangCard ? `<button id="useBang">Use Bang!</button>` : ''}
+      </div>
+    </div>
+  `;
+  
+  indiansDialog.innerHTML = dialogHTML;
+  document.body.appendChild(indiansDialog);
+  
+  if (bangCard) {
+    document.getElementById("useBang").addEventListener("click", () => {
+      const cardIndex = playerHand.findIndex(card => card.name === bangCard.name && card.details === bangCard.details);
+      if (cardIndex !== -1) {
+        playerHand.splice(cardIndex, 1);
+        const currentPlayer = players.find(p => p.username === username);
+        if (currentPlayer) {
+          currentPlayer.cardCount = playerHand.length;
+          socket.emit("update card count", username, playerHand.length);
+        }
+      }
+      
+      socket.emit("defend indians", {
+        attacker: attacker,
+        card: bangCard
+      });
+      
+      document.body.removeChild(indiansDialog);
+      renderPlayerCards(players);
+    });
+  }
+  
+  document.getElementById("takeDamage").addEventListener("click", () => {
+    socket.emit("take damage", {
+      amount: 1,
+      attacker: attacker
+    });
+    
+    document.body.removeChild(indiansDialog);
+  });
+}
+
+socket.on("indians defended", (data) => {
+  console.log(`${data.defender} used Bang! to defend against Indians! from ${data.attacker}`);
+});
+
+socket.on("gatling attack", (data) => {
+  if (data.attacker === username) return;
+
+  console.log(`${data.attacker} played Gatling - all players must discard a Missed! or lose 1 life point`);
+  const missedCard = playerHand.find(card => card.name === "Missed!");
+  const currentPlayer = players.find(p => p.username === username);
+
+  if (missedCard || (currentPlayer && (currentPlayer.champion === "Jourdonnais" || currentPlayer.attributes.includes("Barrel")))) {
+    showMissedDialog(data.attacker, missedCard);
+  } else {
+    socket.emit("take damage", {
+      amount: 1,
+      attacker: data.attacker
+    });
   }
 });
 

@@ -403,6 +403,9 @@ io.on("connection", (socket) => {
     });
   });
 
+
+
+
   socket.on("play bang", (data) => {
     if (!socket.data.room) return;
 
@@ -418,6 +421,56 @@ io.on("connection", (socket) => {
     io.to(socket.data.room).emit("bang attack", {
       attacker: socket.data.user,
       target: data.target,
+      card: data.card
+    });
+  });
+
+  socket.on("play indians", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Indians play rejected: ${socket.data.user} tried to play Indians! when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+
+    console.log(`${socket.data.user} played Indians! in room ${socket.data.room}`);
+    io.to(socket.data.room).emit("indians attack", {
+      attacker: socket.data.user,
+      card: data.card
+    });
+  });
+
+  socket.on("defend indians", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    console.log(`${socket.data.user} used Bang! to defend against Indians! from ${data.attacker} in room ${socket.data.room}`);
+
+    io.to(socket.data.room).emit("indians defended", {
+      defender: socket.data.user,
+      attacker: data.attacker
+    });
+  });
+
+  socket.on("play gatling", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Gatling play rejected: ${socket.data.user} tried to play Gatling when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+
+    console.log(`${socket.data.user} played Gatling in room ${socket.data.room}`);
+    io.to(socket.data.room).emit("gatling attack", {
+      attacker: socket.data.user,
       card: data.card
     });
   });
@@ -451,6 +504,36 @@ io.on("connection", (socket) => {
     io.to(socket.data.room).emit("player damaged", {
       player: socket.data.user,
       attacker: data.attacker,
+      amount: data.amount,
+      currentHP: playerData.hp
+    })
+
+    if (playerData.champion === "Bart Cassidy") {
+      const drawnCard = room.gameDeck.pop();
+      console.log(`${socket.data.user} drew card ${drawnCard.name} (${drawnCard.details}) in room ${socket.data.room}`);
+
+      socket.emit("draw card result", {
+        success: true,
+        card: drawnCard,
+        remainingCards: room.gameDeck.length
+      });
+    }
+  });
+
+  socket.on("heal self", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+    if (!playerData) return;
+
+    playerData.hp += data.amount;
+    console.log(`${socket.data.user} healed for  ${data.amount}, HP now: ${playerData.hp}`);
+
+    io.to(socket.data.room).emit("player healed", {
+      player: socket.data.user,
       amount: data.amount,
       currentHP: playerData.hp
     });
