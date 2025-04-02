@@ -464,6 +464,133 @@ io.on("connection", (socket) => {
 
     }
   });
+
+  socket.on("play cat balou", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Cat Balou play rejected: ${socket.data.user} tried to play Cat Balou when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+
+    const targetPlayer = room.gameData.find(player => player.username === data.target);
+    if (!targetPlayer) return;
+
+    if (data.action === "takeCard") {
+      console.log(`${socket.data.user} played Cat Balou to take a card from ${data.target} in room ${socket.data.room}`);
+      
+      io.to(socket.data.room).emit("cat balou result", {
+        attacker: socket.data.user,
+        target: data.target,
+        action: "takeCard"
+      });
+    } 
+    else if (data.action === "removeAttribute") {
+      console.log(`${socket.data.user} played Cat Balou to remove attribute ${data.attribute} from ${data.target} in room ${socket.data.room}`);
+      
+      if (targetPlayer.attributes) {
+        targetPlayer.attributes = targetPlayer.attributes.filter(attr => attr !== data.attribute);
+      }
+      
+      io.to(socket.data.room).emit("cat balou result", {
+        attacker: socket.data.user,
+        target: data.target,
+        action: "removeAttribute",
+        attribute: data.attribute
+      });
+      
+      io.to(socket.data.room).emit("update attributes", data.target, targetPlayer.attributes || []);
+    }
+  });
+
+  socket.on("play panic", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Panic! play rejected: ${socket.data.user} tried to play Panic! when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+
+    const targetPlayer = room.gameData.find(player => player.username === data.target);
+    if (!targetPlayer) return;
+
+    if (data.action === "stealCard") {
+      console.log(`${socket.data.user} played Panic! to steal a card from ${data.target} in room ${socket.data.room}`);
+      
+      io.to(socket.data.room).emit("panic result", {
+        attacker: socket.data.user,
+        target: data.target,
+        action: "stealCard"
+      });
+    }
+    else if (data.action === "stealAttribute") {
+      console.log(`${socket.data.user} played Panic! to steal attribute ${data.attribute} from ${data.target} in room ${socket.data.room}`);
+      
+      if (targetPlayer.attributes) {
+        targetPlayer.attributes = targetPlayer.attributes.filter(attr => attr !== data.attribute);
+      }
+      
+      const attackerPlayer = room.gameData.find(player => player.username === socket.data.user);
+      if (attackerPlayer) {
+        if (!attackerPlayer.attributes) {
+          attackerPlayer.attributes = [];
+        }
+        
+        if (["Winchester", "Rev. Carabine", "Schofield", "Remington"].includes(data.attribute)) {
+          const existingWeapon = attackerPlayer.attributes.find(attr => 
+            ["Winchester", "Rev. Carabine", "Schofield", "Remington"].includes(attr));
+          
+          if (existingWeapon) {
+            attackerPlayer.attributes = attackerPlayer.attributes.filter(attr => attr !== existingWeapon);
+          }
+        }
+        
+        attackerPlayer.attributes.push(data.attribute);
+      }
+      
+      io.to(socket.data.room).emit("panic result", {
+        attacker: socket.data.user,
+        target: data.target,
+        action: "stealAttribute",
+        attribute: data.attribute
+      });
+      
+      io.to(socket.data.room).emit("update attributes", data.target, targetPlayer.attributes || []);
+      io.to(socket.data.room).emit("update attributes", socket.data.user, attackerPlayer?.attributes || []);
+    }
+  });
+
+  socket.on("card stolen", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (data.from !== socket.data.user) {
+      console.log(`Card stolen event rejected: ${socket.data.user} tried to report a card stolen from ${data.from}`);
+      return;
+    }
+
+    console.log(`${data.to} stole a ${data.card.name} from ${data.from} in room ${socket.data.room}`);
+    
+    const attackerSocket = [...io.sockets.sockets.values()].find(
+      s => s.data.user === data.to && s.data.room === socket.data.room
+    );
+    
+    if (attackerSocket) {
+      attackerSocket.emit("panic result", {
+        attacker: data.to,
+        target: data.from,
+        stolenCard: data.card
+      });
+    }
+  });
 });
 
 

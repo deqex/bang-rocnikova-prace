@@ -719,6 +719,38 @@ function renderPlayerCards(gameData) {
           return;
         }
 
+        if (card.name === "Cat Balou") {
+          targetingMode = true;
+          selectedCard = card;
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+
+          const targetInstruction = document.createElement("div");
+          targetInstruction.id = "targetInstruction";
+          targetInstruction.className = "target-instruction";
+          targetInstruction.innerHTML = `<p>Select a player to target with Cat Balou</p>`;
+          document.body.appendChild(targetInstruction);
+
+          enableCatBalouTargeting();
+          return;
+        }
+
+        if (card.name === "Panic!") {
+          targetingMode = true;
+          selectedCard = card;
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+
+          const targetInstruction = document.createElement("div");
+          targetInstruction.id = "targetInstruction";
+          targetInstruction.className = "target-instruction";
+          targetInstruction.innerHTML = `<p>Select a player to steal a card from (range: 1)</p>`;
+          document.body.appendChild(targetInstruction);
+
+          enablePanicTargeting();
+          return;
+        }
+
         if (card.name === "Schofield") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
@@ -1145,7 +1177,7 @@ function showMissedDialog(attacker, missedCard) {
         <button id="useBarrel">Use Barrel</button>`;
   }
 
-  if (currentPlayer.champion === "Jourdonnais") {  //brasko hochu nezapomen ze capek muze chtit pouzit barrel a joudu tak at se to menu reobjevi
+  if (currentPlayer.champion === "Jourdonnais") {  
     dialogHTML += `
         <button id="usePassive">Use passive</button>`;
   }
@@ -1465,3 +1497,488 @@ socket.on("update attributes", (playerUsername, attributes) => {
     }
   }
 });
+
+function enableCatBalouTargeting() {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    if (card.classList.contains('current-player')) return;
+    card.classList.add('targetable');
+    card.addEventListener('click', handleCatBalouTargeting);
+  });
+}
+
+function handleCatBalouTargeting(event) {
+  const targetCard = event.currentTarget;
+
+  const nameElement = targetCard.querySelector('.player-name');
+  const targetUsername = nameElement.textContent.replace(' (Turn)', '');
+
+  const targetPlayer = players.find(p => p.username === targetUsername);
+  const currentPlayer = players.find(p => p.username === username);
+
+  if (!targetPlayer || !currentPlayer) {
+    console.log("Could not find player data");
+    disableCatBalouTargeting();
+    return;
+  }
+
+  const cardIndex = playerHand.findIndex(card =>
+    card.name === selectedCard.name && card.details === selectedCard.details);
+
+  if (cardIndex !== -1) {
+    playerHand.splice(cardIndex, 1);
+    currentPlayer.cardCount = playerHand.length;
+    socket.emit("update card count", username, playerHand.length);
+  }
+
+  showCatBalouOptionsDialog(targetUsername);
+  disableCatBalouTargeting();
+}
+
+function disableCatBalouTargeting() {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    card.classList.remove('targetable');
+    card.removeEventListener('click', handleCatBalouTargeting);
+  });
+  const instruction = document.getElementById('targetInstruction');
+  if (instruction) document.body.removeChild(instruction);
+
+  targetingMode = false;
+  selectedCard = null;
+}
+
+function showCatBalouOptionsDialog(targetUsername) {
+  const targetPlayer = players.find(p => p.username === targetUsername);
+  
+  const optionsDialog = document.createElement("div");
+  optionsDialog.className = "cat-balou-dialog";
+  
+  let dialogContent = `
+    <div class="cat-balou-dialog-content">
+      <h3>Cat Balou - Choose Action</h3>
+      <p>What would you like to do to ${targetUsername}?</p>
+      <div class="cat-balou-buttons">
+        <button id="randomCard">Take a Random Card</button>`;
+  
+  // Only show attribute option if the target has attributes
+  if (targetPlayer.attributes && targetPlayer.attributes.length > 0) {
+    dialogContent += `<button id="chooseAttribute">Remove an Attribute</button>`;
+  }
+  
+  dialogContent += `</div></div>`;
+  
+  optionsDialog.innerHTML = dialogContent;
+  document.body.appendChild(optionsDialog);
+  
+  document.getElementById("randomCard").addEventListener("click", () => {
+    socket.emit("play cat balou", {
+      target: targetUsername,
+      action: "takeCard"
+    });
+    document.body.removeChild(optionsDialog);
+    renderPlayerCards(players);
+  });
+  
+  const attributeButton = document.getElementById("chooseAttribute");
+  if (attributeButton) {
+    attributeButton.addEventListener("click", () => {
+      document.body.removeChild(optionsDialog);
+      showAttributeSelectionDialog(targetUsername, targetPlayer.attributes);
+    });
+  }
+}
+
+function showAttributeSelectionDialog(targetUsername, attributes) {
+  const attributeDialog = document.createElement("div");
+  attributeDialog.className = "cat-balou-dialog";
+  
+  let dialogContent = `
+    <div class="cat-balou-dialog-content">
+      <h3>Select Attribute to Remove</h3>
+      <p>Choose which attribute to remove from ${targetUsername}:</p>
+      <div class="cat-balou-attributes">`;
+  
+  attributes.forEach(attr => {
+    dialogContent += `<button class="attribute-button" data-attr="${attr}">${attr}</button>`;
+  });
+  
+  dialogContent += `</div></div>`;
+  
+  attributeDialog.innerHTML = dialogContent;
+  document.body.appendChild(attributeDialog);
+  
+  const attributeButtons = document.querySelectorAll('.attribute-button');
+  attributeButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      const attributeToRemove = button.getAttribute('data-attr');
+      socket.emit("play cat balou", {
+        target: targetUsername,
+        action: "removeAttribute",
+        attribute: attributeToRemove
+      });
+      document.body.removeChild(attributeDialog);
+      renderPlayerCards(players);
+    });
+  });
+}
+
+socket.on("cat balou result", (data) => {
+  if (data.action === "takeCard") {
+    console.log(`${data.attacker} took a card from ${data.target}`);
+    
+    if (data.target === username && playerHand.length > 0) {
+      const randomIndex = Math.floor(Math.random() * playerHand.length);
+      const removedCard = playerHand.splice(randomIndex, 1)[0];
+      
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+        socket.emit("update card count", username, playerHand.length);
+      }
+      console.log(`${data.attacker} took your ${removedCard.name} card`);
+    }
+    
+    if (data.attacker === username && data.cardTaken) {
+      console.log(`You took a ${data.cardTaken.name} from ${data.target}`);
+    }
+  } else if (data.action === "removeAttribute") {
+    console.log(`${data.attacker} removed ${data.attribute} from ${data.target}`);
+    
+     const targetPlayer = players.find(p => p.username === data.target);
+    if (targetPlayer && targetPlayer.attributes) {
+      targetPlayer.attributes = targetPlayer.attributes.filter(attr => attr !== data.attribute);
+      renderPlayerCards(players);
+    }
+  }
+});
+
+const catBalouStyle = document.createElement('style');
+catBalouStyle.textContent = `
+.cat-balou-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.cat-balou-dialog-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.cat-balou-buttons, .cat-balou-attributes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cat-balou-buttons button, .attribute-button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  background-color: #9b4f96;
+  color: white;
+  transition: background-color 0.2s;
+}
+
+.cat-balou-buttons button:hover, .attribute-button:hover {
+  background-color: #7a3c78;
+}
+`;
+document.head.appendChild(catBalouStyle);
+
+function enablePanicTargeting() {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    if (card.classList.contains('current-player')) return;
+    card.classList.add('targetable');
+    card.addEventListener('click', handlePanicTargeting);
+  });
+}
+
+function disablePanicTargeting() {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    card.classList.remove('targetable');
+    card.removeEventListener('click', handlePanicTargeting);
+  });
+  const instruction = document.getElementById('targetInstruction');
+  if (instruction) document.body.removeChild(instruction);
+
+  targetingMode = false;
+  selectedCard = null;
+}
+
+function handlePanicTargeting(event) {
+  const targetCard = event.currentTarget;
+
+  const nameElement = targetCard.querySelector('.player-name');
+  const targetUsername = nameElement.textContent.replace(' (Turn)', '');
+
+  const targetPlayer = players.find(p => p.username === targetUsername);
+  const currentPlayer = players.find(p => p.username === username);
+
+  if (!targetPlayer || !currentPlayer) {
+    console.log("Could not find player data");
+    disablePanicTargeting();
+    return;
+  }
+
+  const distance = calculateDistance(currentPlayer, targetPlayer, players.length);
+
+  if (distance > 1) {
+    alert(`Target is out of range for Panic! (distance: ${distance}, Panic! range: 1)`);
+    disablePanicTargeting();
+    return;
+  }
+
+  if (targetPlayer.cardCount <= 0 && (!targetPlayer.attributes || targetPlayer.attributes.length === 0)) {
+    alert(`${targetUsername} has nothing to steal!`);
+    disablePanicTargeting();
+    return;
+  }
+
+  const cardIndex = playerHand.findIndex(card =>
+    card.name === selectedCard.name && card.details === selectedCard.details);
+
+  if (cardIndex !== -1) {
+    playerHand.splice(cardIndex, 1);
+    currentPlayer.cardCount = playerHand.length;
+    socket.emit("update card count", username, playerHand.length);
+  }
+
+  showPanicOptionsDialog(targetUsername);
+  disablePanicTargeting();
+}
+
+function showPanicOptionsDialog(targetUsername) {
+  const targetPlayer = players.find(p => p.username === targetUsername);
+  
+  const optionsDialog = document.createElement("div");
+  optionsDialog.className = "panic-dialog";
+  
+  let dialogContent = `
+    <div class="panic-dialog-content">
+      <h3>Panic! - Choose Action</h3>
+      <p>What would you like to steal from ${targetUsername}?</p>
+      <div class="panic-buttons">`;
+      
+  if (targetPlayer.cardCount > 0) {
+    dialogContent += `<button id="stealCard">Steal a Random Card</button>`;
+  }
+  
+  if (targetPlayer.attributes && targetPlayer.attributes.length > 0) {
+    dialogContent += `<button id="stealAttribute">Steal an Attribute</button>`;
+  }
+  
+  dialogContent += `</div></div>`;
+  
+  optionsDialog.innerHTML = dialogContent;
+  document.body.appendChild(optionsDialog);
+  
+  const stealCardButton = document.getElementById("stealCard");
+  if (stealCardButton) {
+    stealCardButton.addEventListener("click", () => {
+      socket.emit("play panic", {
+        target: targetUsername,
+        action: "stealCard"
+      });
+      document.body.removeChild(optionsDialog);
+      renderPlayerCards(players);
+    });
+  }
+  
+  const stealAttributeButton = document.getElementById("stealAttribute");
+  if (stealAttributeButton) {
+    stealAttributeButton.addEventListener("click", () => {
+      document.body.removeChild(optionsDialog);
+      showAttributeSelectionDialogForPanic(targetUsername, targetPlayer.attributes);
+    });
+  }
+}
+
+function showAttributeSelectionDialogForPanic(targetUsername, attributes) {
+  const attributeDialog = document.createElement("div");
+  attributeDialog.className = "panic-dialog";
+  
+  let dialogContent = `
+    <div class="panic-dialog-content">
+      <h3>Select Attribute to Steal</h3>
+      <p>Choose which attribute to take from ${targetUsername}:</p>
+      <div class="panic-attributes">`;
+  
+  attributes.forEach(attr => {
+    dialogContent += `<button class="attribute-button" data-attr="${attr}">${attr}</button>`;
+  });
+  
+  dialogContent += `</div></div>`;
+  
+  attributeDialog.innerHTML = dialogContent;
+  document.body.appendChild(attributeDialog);
+  
+  const attributeButtons = document.querySelectorAll('.attribute-button');
+  attributeButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      const attributeToSteal = button.getAttribute('data-attr');
+      socket.emit("play panic", {
+        target: targetUsername,
+        action: "stealAttribute",
+        attribute: attributeToSteal
+      });
+      document.body.removeChild(attributeDialog);
+      renderPlayerCards(players);
+    });
+  });
+}
+
+socket.on("panic result", (data) => {
+  console.log(`${data.attacker} used Panic! on ${data.target}`);
+  
+  if (data.action === "stealCard") {
+    if (data.target === username && playerHand.length > 0) {
+      const randomIndex = Math.floor(Math.random() * playerHand.length);
+      const removedCard = playerHand.splice(randomIndex, 1)[0];
+      
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+        socket.emit("update card count", username, playerHand.length);
+      }
+      
+      console.log(`${data.attacker} stole your ${removedCard.name} card`);
+      
+      socket.emit("card stolen", {
+        card: removedCard,
+        from: username,
+        to: data.attacker
+      });
+    }
+    
+    if (data.attacker === username && data.stolenCard) {
+      playerHand.push(data.stolenCard);
+      
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+        socket.emit("update card count", username, playerHand.length);
+      }
+      
+      console.log(`You stole a ${data.stolenCard.name} from ${data.target}`);
+      renderPlayerCards(players);
+    }
+  } 
+  else if (data.action === "stealAttribute") {
+    console.log(`${data.attacker} stole ${data.attribute} from ${data.target}`);
+    
+    if (data.target === username) {
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer && currentPlayer.attributes) {
+        currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== data.attribute);
+        socket.emit("update attributes", username, currentPlayer.attributes);
+      }
+    }
+    
+
+    if (data.attacker === username) {
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        if (!currentPlayer.attributes) {
+          currentPlayer.attributes = [];
+        }
+        
+        if (listOfWeapons.includes(data.attribute)) {
+          const existingWeapon = listOfWeapons.find(weapon => currentPlayer.attributes.includes(weapon));
+          if (existingWeapon) {
+            currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== existingWeapon);
+          }
+        }
+        
+        currentPlayer.attributes.push(data.attribute);
+        socket.emit("update attributes", username, currentPlayer.attributes);
+        console.log(`You stole ${data.attribute} from ${data.target}`);
+      }
+    }
+    
+    renderPlayerCards(players);
+  }
+});
+
+const panicStyle = document.createElement('style');
+panicStyle.textContent = `
+.panic-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.panic-dialog-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.panic-buttons, .panic-attributes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.panic-buttons button, .attribute-button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  background-color: #ff5722;
+  color: white;
+  transition: background-color 0.2s;
+}
+
+.panic-buttons button:hover, .attribute-button:hover {
+  background-color: #e64a19;
+}
+
+.panic-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 8px;
+  z-index: 2000;
+  animation: fadeInOut 2s forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+`;
+document.head.appendChild(panicStyle);
