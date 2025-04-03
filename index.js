@@ -529,12 +529,15 @@ io.on("connection", (socket) => {
     const playerData = room.gameData.find(player => player.username === socket.data.user);
     if (!playerData) return;
 
-    playerData.hp += data.amount;
-    console.log(`${socket.data.user} healed for  ${data.amount}, HP now: ${playerData.hp}`);
+    const newHp = Math.min(playerData.hp + data.amount, playerData.maxHP);
+    const actualHealAmount = newHp - playerData.hp; 
+    playerData.hp = newHp;
+    
+    console.log(`${socket.data.user} healed for ${actualHealAmount} (limited by max HP), HP now: ${playerData.hp}/${playerData.maxHP}`);
 
     io.to(socket.data.room).emit("player healed", {
       player: socket.data.user,
-      amount: data.amount,
+      amount: actualHealAmount,
       currentHP: playerData.hp
     });
 
@@ -544,7 +547,6 @@ io.on("connection", (socket) => {
         player: socket.data.user,
         attacker: data.attacker
       });
-
     }
   });
 
@@ -808,6 +810,34 @@ io.on("connection", (socket) => {
         currentSelector: nextSelector
       });
     }
+  });
+
+  socket.on("play saloon", () => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Saloon play rejected: ${socket.data.user} tried to play Saloon when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+
+    console.log(`${socket.data.user} played Saloon in room ${socket.data.room}. Healing all players by 1 HP.`);
+    
+    room.gameData.forEach(player => {
+      const newHp = Math.min(player.hp + 1, player.maxHP);
+      const actualHealAmount = newHp - player.hp;
+      player.hp = newHp;
+      
+      if (actualHealAmount > 0) {
+        io.to(socket.data.room).emit("player healed", {
+          player: player.username,
+          amount: actualHealAmount,
+          currentHP: player.hp
+        });
+      }
+    });
   });
 });
 

@@ -989,6 +989,21 @@ function renderPlayerCards(gameData) {
           return;
         }
 
+        if (card.name === "Saloon") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("play saloon");
+            console.log("Played Saloon: Healing all players by 1 HP");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
         playerHand.splice(index, 1);
 
         const currentPlayer = players.find(p => p.username === username);
