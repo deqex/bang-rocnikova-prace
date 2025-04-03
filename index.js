@@ -674,6 +674,141 @@ io.on("connection", (socket) => {
       });
     }
   });
+
+  socket.on("play general store", () => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData || !room.gameDeck) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`General Store play rejected: ${socket.data.user} tried to play General Store when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+
+    const playerCount = room.gameData.length;
+    
+    const availableCards = [];
+    
+    for (let i = 0; i < playerCount && room.gameDeck.length > 0; i++) { //shoutout stepan
+      availableCards.push(room.gameDeck.pop());
+    }
+    
+    console.log(`${socket.data.user} played General Store. Drew ${availableCards.length} cards.`);
+    
+    // Determine the selection order based on positions
+    // First the player who played the card, then clockwise
+    const playingPlayerIndex = room.gameData.findIndex(player => player.username === socket.data.user);
+    let selectionOrder = [];
+    
+    if (playingPlayerIndex !== -1) {
+      // Start with the player who played the card
+      for (let i = 0; i < playerCount; i++) {
+        const playerIndex = (playingPlayerIndex + i) % playerCount;
+        selectionOrder.push(room.gameData[playerIndex].username);
+      }
+    }
+    
+    // Set up the general store state with turn order
+    room.generalStore = {
+      cards: availableCards,
+      playedBy: socket.data.user,
+      selectedCards: {},
+      selectionOrder: selectionOrder,
+      currentSelectorIndex: 0
+    };
+    
+    const currentSelector = selectionOrder[0];
+    
+    // Emit the general store event to all players
+    io.to(socket.data.room).emit("general store cards", {
+      cards: availableCards,
+      playedBy: socket.data.user,
+      currentSelector: currentSelector
+    });
+  });
+
+  socket.on("select general store card", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.generalStore) {
+      console.log(`General Store state not found for room ${socket.data.room}`);
+      return;
+    }
+    
+    // Debug the current state
+    console.log("General Store state:", {
+      currentSelector: room.generalStore.selectionOrder[room.generalStore.currentSelectorIndex],
+      requestingPlayer: socket.data.user,
+      selectionOrder: room.generalStore.selectionOrder,
+      currentIndex: room.generalStore.currentSelectorIndex,
+      remainingCards: room.generalStore.cards.length
+    });
+    
+    // Check if it's this player's turn to select
+    const currentSelector = room.generalStore.selectionOrder[room.generalStore.currentSelectorIndex];
+    if (currentSelector !== socket.data.user) {
+      console.log(`Card selection rejected: ${socket.data.user} tried to select when it's ${currentSelector}'s turn`);
+      return;
+    }
+    
+    // Check if the selected card is available
+    const cardIndex = room.generalStore.cards.findIndex(
+      card => card.name === data.card.name && card.details === data.card.details
+    );
+    
+    if (cardIndex === -1) {
+      console.log(`${socket.data.user} tried to select a card that's no longer available`);
+      return;
+    }
+    
+    // Remove the card from available cards
+    const selectedCard = room.generalStore.cards.splice(cardIndex, 1)[0];
+    
+    // Record the selection
+    room.generalStore.selectedCards[socket.data.user] = selectedCard;
+    
+    console.log(`${socket.data.user} selected ${selectedCard.name} from General Store`);
+    
+    // Notify all players about the selection
+    io.to(socket.data.room).emit("general store card selected", {
+      player: socket.data.user,
+      card: selectedCard
+    });
+    
+    // Move to the next selector
+    room.generalStore.currentSelectorIndex++;
+    
+    // Debug the new state
+    console.log("Updated index:", room.generalStore.currentSelectorIndex);
+    console.log("Selection order length:", room.generalStore.selectionOrder.length);
+    
+    // Check if all players have selected a card
+    if (room.generalStore.currentSelectorIndex >= room.generalStore.selectionOrder.length) {
+      console.log("All players have selected. General Store complete.");
+      
+      // Notify all players that the general store is complete
+      Object.keys(room.generalStore.selectedCards).forEach(player => {
+        io.to(socket.data.room).emit("general store complete", {
+          selectedBy: player,
+          card: room.generalStore.selectedCards[player]
+        });
+      });
+      
+      // Clean up
+      delete room.generalStore;
+    } else {
+      // Move to the next player's turn
+      const nextSelector = room.generalStore.selectionOrder[room.generalStore.currentSelectorIndex];
+      console.log(`Next selector: ${nextSelector}`);
+      
+      // Notify all players of the new selector
+      io.to(socket.data.room).emit("general store update selector", {
+        currentSelector: nextSelector
+      });
+    }
+  });
 });
 
 

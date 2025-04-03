@@ -974,6 +974,21 @@ function renderPlayerCards(gameData) {
           return;
         }
 
+        if (card.name === "General Store") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("play general store");
+            console.log("Played General Store: Drawing cards for everyone to choose in turns");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
         playerHand.splice(index, 1);
 
         const currentPlayer = players.find(p => p.username === username);
@@ -2145,3 +2160,331 @@ panicStyle.textContent = `
 }
 `;
 document.head.appendChild(panicStyle);
+
+socket.on("general store cards", (data) => {
+  console.log("General Store cards received:", data.cards);
+  showGeneralStoreDialog(data.cards, data.playedBy, data.currentSelector);
+});
+
+function showGeneralStoreDialog(cards, playedBy, currentSelector) {
+  const generalStoreDialog = document.createElement("div");
+  generalStoreDialog.className = "general-store-dialog";
+  
+  let dialogHTML = `
+    <div class="general-store-content">
+      <h3>General Store</h3>
+      <p>${playedBy} played General Store!</p>
+      <p class="selector-info">Current selector: <strong>${currentSelector}</strong></p>`;
+  
+  if (currentSelector === username) {
+    dialogHTML += `<p class="your-turn">It's your turn to select a card!</p>`;
+  } else {
+    dialogHTML += `<p class="waiting">Waiting for ${currentSelector} to select a card...</p>`;
+  }
+  
+  dialogHTML += `<div class="general-store-cards">`;
+  
+  cards.forEach(card => {
+    const disabledClass = currentSelector !== username ? ' disabled' : '';
+    
+    dialogHTML += `
+      <div class="general-store-card${disabledClass}" data-name="${card.name}" data-details="${card.details}">
+        <div class="card-name">${card.name}</div>
+        <div class="card-details">${card.details}</div>
+      </div>`;
+  });
+  
+  dialogHTML += `</div></div>`;
+  
+  generalStoreDialog.innerHTML = dialogHTML;
+  document.body.appendChild(generalStoreDialog);
+  
+  if (currentSelector === username) {
+    const storeCards = document.querySelectorAll('.general-store-card');
+    storeCards.forEach(cardElement => {
+      cardElement.addEventListener('click', () => {
+        const cardName = cardElement.getAttribute('data-name');
+        const cardDetails = cardElement.getAttribute('data-details');
+        
+        socket.emit("select general store card", {
+          card: { name: cardName, details: cardDetails }
+        });
+        
+        storeCards.forEach(c => {
+          c.classList.add('disabled');
+          c.style.pointerEvents = 'none';
+        });
+        
+        const selectorInfo = document.querySelector('.selector-info');
+        if (selectorInfo) {
+          selectorInfo.innerHTML = '<p>You selected a card. Waiting for other players...</p>';
+        }
+        
+        if (document.querySelector('.your-turn')) {
+          document.querySelector('.your-turn').remove();
+        }
+      });
+    });
+  }
+}
+
+socket.on("general store update selector", (data) => {
+  console.log("General Store selector update:", data.currentSelector);
+  const dialog = document.querySelector('.general-store-dialog');
+  if (!dialog) return;
+
+  const selectorInfo = dialog.querySelector('.selector-info');
+  if (selectorInfo) {
+    selectorInfo.innerHTML = `Current selector: <strong>${data.currentSelector}</strong>`;
+  }
+  
+  // If it's now your turn, enable cards and show prompt
+  if (data.currentSelector === username) {
+    // Remove any existing waiting message
+    const waitingMsg = dialog.querySelector('.waiting');
+    if (waitingMsg) waitingMsg.remove();
+    
+    const generalStoreContent = dialog.querySelector('.general-store-content');
+    
+    // Remove existing 'your turn' message if present
+    const existingYourTurn = dialog.querySelector('.your-turn');
+    if (existingYourTurn) existingYourTurn.remove();
+    
+    // Add 'your turn' message
+    const yourTurnMsg = document.createElement('p');
+    yourTurnMsg.className = 'your-turn';
+    yourTurnMsg.textContent = "It's your turn to select a card!";
+    
+    // Insert before the cards container
+    const cardsContainer = dialog.querySelector('.general-store-cards');
+    generalStoreContent.insertBefore(yourTurnMsg, cardsContainer);
+    
+    // Enable card selection and attach fresh event listeners
+    const storeCards = dialog.querySelectorAll('.general-store-card');
+    storeCards.forEach(card => {
+      card.classList.remove('disabled');
+      card.style.pointerEvents = 'auto';
+      
+      // Remove any existing listeners to prevent duplicates
+      const clone = card.cloneNode(true);
+      card.parentNode.replaceChild(clone, card);
+      
+      // Add fresh listener
+      clone.addEventListener('click', function() {
+        const cardName = this.getAttribute('data-name');
+        const cardDetails = this.getAttribute('data-details');
+        
+        console.log(`Selecting card: ${cardName} (${cardDetails})`);
+        
+        socket.emit("select general store card", {
+          card: { name: cardName, details: cardDetails }
+        });
+        
+        // Disable all cards after selection
+        dialog.querySelectorAll('.general-store-card').forEach(c => {
+          c.classList.add('disabled');
+          c.style.pointerEvents = 'none';
+        });
+        
+        // Update UI to show waiting state
+        const yourTurnElement = dialog.querySelector('.your-turn');
+        if (yourTurnElement) yourTurnElement.remove();
+        
+        const newMsg = document.createElement('p');
+        newMsg.className = 'waiting';
+        newMsg.textContent = 'You selected a card. Waiting for other players...';
+        generalStoreContent.insertBefore(newMsg, dialog.querySelector('.general-store-cards'));
+      });
+    });
+  } else {
+    // If it's not your turn, ensure cards are disabled and update waiting message
+    const yourTurnMsg = dialog.querySelector('.your-turn');
+    if (yourTurnMsg) yourTurnMsg.remove();
+    
+    // Update or create waiting message
+    let waitingMsg = dialog.querySelector('.waiting');
+    if (!waitingMsg) {
+      waitingMsg = document.createElement('p');
+      waitingMsg.className = 'waiting';
+      const generalStoreContent = dialog.querySelector('.general-store-content');
+      generalStoreContent.insertBefore(waitingMsg, dialog.querySelector('.general-store-cards'));
+    }
+    waitingMsg.textContent = `Waiting for ${data.currentSelector} to select a card...`;
+    
+    // Ensure cards are disabled
+    const storeCards = dialog.querySelectorAll('.general-store-card');
+    storeCards.forEach(card => {
+      card.classList.add('disabled');
+      card.style.pointerEvents = 'none';
+    });
+  }
+});
+
+// Update the event listener for when a card is selected
+socket.on("general store card selected", (data) => {
+  console.log(`${data.player} selected ${data.card.name} from General Store`);
+  
+  const dialog = document.querySelector('.general-store-dialog');
+  if (!dialog) return;
+  
+  // Remove the selected card from the display
+  let cardRemoved = false;
+  const cards = dialog.querySelectorAll('.general-store-card');
+  cards.forEach(cardElement => {
+    if (cardElement.getAttribute('data-name') === data.card.name && 
+        cardElement.getAttribute('data-details') === data.card.details) {
+      cardElement.remove();
+      cardRemoved = true;
+    }
+  });
+  
+  if (!cardRemoved) {
+    console.warn(`Card ${data.card.name} (${data.card.details}) not found in the display`);
+  }
+  
+  // Create or find selections container
+  let selectionsContainer = dialog.querySelector('.selections-container');
+  if (!selectionsContainer) {
+    selectionsContainer = document.createElement('div');
+    selectionsContainer.className = 'selections-container';
+    dialog.querySelector('.general-store-content').appendChild(selectionsContainer);
+  }
+  
+  // Add selection info
+  const selectionInfo = document.createElement('div');
+  selectionInfo.className = 'selection-info';
+  selectionInfo.textContent = `${data.player} selected ${data.card.name}`;
+  selectionInfo.style.color = '#ff5722';
+  selectionsContainer.appendChild(selectionInfo);
+});
+
+// Update this event listener for when the general store is complete
+socket.on("general store complete", (data) => {
+  // If you're one of the players who selected a card, add it to your hand
+  if (data.selectedBy === username && data.card) {
+    playerHand.push(data.card);
+    const currentPlayer = players.find(p => p.username === username);
+    if (currentPlayer) {
+      currentPlayer.cardCount = playerHand.length;
+      socket.emit("update card count", username, playerHand.length);
+    }
+  }
+  
+  // Show final message and close dialog after delay
+  const dialog = document.querySelector('.general-store-dialog');
+  if (dialog) {
+    const finalMsg = document.createElement('p');
+    finalMsg.className = 'final-message';
+    finalMsg.textContent = 'All players have selected their cards!';
+    dialog.querySelector('.general-store-content').appendChild(finalMsg);
+    
+    setTimeout(() => {
+      document.body.removeChild(dialog);
+      renderPlayerCards(players);
+    }, 2000);
+  }
+});
+
+// Update styles for the General Store
+const generalStoreStyle = document.createElement('style');
+generalStoreStyle.textContent = `
+.general-store-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.general-store-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 800px;
+  width: 90%;
+  text-align: center;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.general-store-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.general-store-card {
+  width: 120px;
+  height: 180px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+  padding: 10px;
+  text-align: center;
+}
+
+.general-store-card:hover:not(.disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  background-color: #e8f5e9;
+}
+
+.general-store-card.disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.selector-info {
+  margin-top: 10px;
+  font-size: 16px;
+  color: #333;
+}
+
+.your-turn {
+  margin-top: 10px;
+  color: #2196F3;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.waiting {
+  margin-top: 10px;
+  color: #FF9800;
+  font-style: italic;
+}
+
+.selections-container {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.selection-info {
+  color: #ff5722;
+  font-style: italic;
+}
+
+.final-message {
+  margin-top: 15px;
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 18px;
+}
+`;
+document.head.appendChild(generalStoreStyle);
