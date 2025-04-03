@@ -649,7 +649,7 @@ function renderPlayerCards(gameData) {
 
   controls.innerHTML = `
     <button id="endTurn" ${!isPlayerTurn ? 'disabled' : ''}>End Turn</button>
-    <button id="playCard" ${!isPlayerTurn ? 'disabled' : ''}>Play Card</button>
+    <button id="playCard">Play Card</button>
     <button id="drawCard" ${!isPlayerTurn ? 'disabled' : ''}>Draw Card</button>
   `;
   gameArea.appendChild(controls);
@@ -663,12 +663,7 @@ function renderPlayerCards(gameData) {
   });
 
   document.getElementById("playCard").addEventListener("click", () => {
-    if (currentTurn !== username) {
-      console.log("Not your turn");
-      return;
-    }
-
-    if (playerHand.length === 0) { //lowkey pak mozna dej do jednoho ifu jsem linej rn
+    if (playerHand.length === 0) {
       console.log("No cards to play");
       return;
     }
@@ -708,6 +703,11 @@ function renderPlayerCards(gameData) {
 
       cardElement.addEventListener("click", () => {
         console.log(`Selected card: ${card.name} (${card.details})`);
+
+        if (currentTurn !== username) {
+          console.log("Not your turn");
+          return;
+        }
 
         if (card.name === "Bang!") {
           targetingMode = true;
