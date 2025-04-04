@@ -1371,6 +1371,13 @@ socket.on("player damaged", (data) => {
     playerToUpdate.hp = data.currentHP;
     renderPlayerCards(players);
   }
+  
+  if (data.player === username && data.attacker !== data.player && playerToUpdate && playerToUpdate.champion === "El Gringo") {
+    console.log("El Gringo ability triggered: Drawing a card from attacker's hand");
+    socket.emit("el gringo ability", {
+      attacker: data.attacker
+    });
+  }
 });
 
 socket.on("player healed", (data) => {
@@ -2503,3 +2510,42 @@ generalStoreStyle.textContent = `
 }
 `;
 document.head.appendChild(generalStoreStyle);
+
+socket.on("el gringo draw", (data) => {
+  if (data.target === username && data.stolenCard) {
+    playerHand.push(data.stolenCard);
+    
+    const currentPlayer = players.find(p => p.username === username);
+    if (currentPlayer) {
+      currentPlayer.cardCount = playerHand.length;
+      socket.emit("update card count", username, playerHand.length);
+    }
+    console.log(`El Gringo: You drew a ${data.stolenCard.name} from ${data.attacker}`);
+    renderPlayerCards(players);
+  }
+  
+  if (data.attacker === username) {
+    if (playerHand.length > 0) {
+      const randomIndex = Math.floor(Math.random() * playerHand.length);
+      const removedCard = playerHand.splice(randomIndex, 1)[0];
+      
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+        socket.emit("update card count", username, playerHand.length);
+      }
+      
+      console.log(`${data.target} took your ${removedCard.name} card using El Gringo ability`);
+      
+      socket.emit("el gringo card taken", {
+        card: removedCard,
+        from: username,
+        to: data.target
+      });
+      
+      renderPlayerCards(players);
+    }
+  }
+});
+
+document.head.appendChild(elGringoStyle);

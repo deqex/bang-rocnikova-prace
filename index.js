@@ -506,7 +506,7 @@ io.on("connection", (socket) => {
       attacker: data.attacker,
       amount: data.amount,
       currentHP: playerData.hp
-    })
+    });
 
     if (playerData.champion === "Bart Cassidy") {
       const drawnCard = room.gameDeck.pop();
@@ -516,6 +516,52 @@ io.on("connection", (socket) => {
         success: true,
         card: drawnCard,
         remainingCards: room.gameDeck.length
+      });
+    }
+  });
+
+  socket.on("el gringo ability", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+    if (!playerData || playerData.champion !== "El Gringo") {
+      console.log(`${socket.data.user} is not El Gringo`);
+      return;
+    }
+
+    console.log(`${socket.data.user} (El Gringo) is drawing a card from ${data.attacker}`);
+    
+    io.to(socket.data.room).emit("el gringo draw", {
+      target: socket.data.user,
+      attacker: data.attacker
+    });
+  });
+
+  socket.on("el gringo card taken", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    // AI if funkce
+    if (data.from !== socket.data.user) {
+      console.log(`${socket.data.user} tried to report a card taken from ${data.from}`);
+      return;
+    }
+
+    console.log(`${data.to} took a ${data.card.name} from ${data.from} using El Gringo ability in room ${socket.data.room}`);
+    
+    // AI RADEK
+    const targetSocket = [...io.sockets.adapter.rooms.get(socket.data.room)].map(id => io.sockets.sockets.get(id)).find(s => s.data.user === data.to);
+    
+    if (targetSocket) {
+      targetSocket.emit("el gringo draw", {
+        target: data.to,
+        attacker: data.from,
+        stolenCard: data.card
       });
     }
   });
