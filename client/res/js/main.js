@@ -35,6 +35,7 @@ let cardSelectionOpen = false; //mozna pak odeber
 let targetingMode = false; // Flag to track if we're in targeting mode
 let selectedCard = null; // Track the selected card for targeting
 const listOfWeapons = ["Winchester", "Rev. Carabine", "Schofield", "Remington"];
+let numberOfDrawnCards = 0;
 
 enterUsername.onclick = () => {
   username = nameInput.value;
@@ -231,15 +232,15 @@ function generateGameData(players) {
   const championData = { // generovano pomoci ai 
     "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
     "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
-    "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
+  //  "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
     "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
-    "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
-    "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
-    "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
-    "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
-    "Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
-    "Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
-    "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
+   // "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
+ //   "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
+   // "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
+    //"El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
+    //"Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
+    //"Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
+ //   "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
     "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
     "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
     "Vulture Sam": { baseHP: 4, description: "Takes all cards of eliminated players" }
@@ -659,7 +660,16 @@ function renderPlayerCards(gameData) {
       console.log("not your turn");
       return;
     }
-    socket.emit("draw card");
+
+    const currentPlayer = players.find(p => p.username === username);
+    if (currentPlayer.champion === "Kit Carlson") {
+      
+    }
+    numberOfDrawnCards++;
+    socket.emit("draw card", numberOfDrawnCards);
+
+    numberOfDrawnCards++;
+    socket.emit("draw card", numberOfDrawnCards);
   });
 
   document.getElementById("playCard").addEventListener("click", () => {
@@ -906,6 +916,7 @@ function renderPlayerCards(gameData) {
         if (card.name === "Wells Fargo") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
+
             playerHand.splice(index, 1);
             socket.emit("draw card");
             socket.emit("draw card");
@@ -915,6 +926,7 @@ function renderPlayerCards(gameData) {
             socket.emit("update card count", username, playerHand.length);
             socket.emit("update attributes", username, currentPlayer.attributes);
             console.log("Equipped Wells Fargo: Draw 3 cards");
+
           }
           document.body.removeChild(cardMenu);
           cardSelectionOpen = false;
@@ -925,6 +937,7 @@ function renderPlayerCards(gameData) {
         if (card.name === "Stagecoach") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
+
             playerHand.splice(index, 1);
             socket.emit("draw card");
             socket.emit("draw card");
@@ -933,6 +946,7 @@ function renderPlayerCards(gameData) {
             socket.emit("update card count", username, playerHand.length);
             socket.emit("update attributes", username, currentPlayer.attributes);
             console.log("Equipped Stagecoach: Draw 2 cards");
+
           }
           document.body.removeChild(cardMenu);
           cardSelectionOpen = false;
@@ -1033,6 +1047,7 @@ function renderPlayerCards(gameData) {
 
 
   document.getElementById("endTurn").addEventListener("click", () => {
+    numberOfDrawnCards = 0;
     if (currentTurn !== username) {
       console.log("Not your turn");
       return;

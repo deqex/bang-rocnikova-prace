@@ -377,7 +377,7 @@ io.on("connection", (socket) => {
     io.to(socket.data.room).emit("update attributes", playerUsername, attributes);
   });
 
-  socket.on("draw card", () => {
+  socket.on("draw card", (numberOfDrawnCards) => {
     if (!socket.data.room) return;
     const room = roomsInfo[socket.data.room];
 
@@ -393,8 +393,19 @@ io.on("connection", (socket) => {
       return;
     }
 
+    if(!socket.data.user.includes("q")) { // pak odeber pouze testing
+      if (numberOfDrawnCards > 2) return;
+      console.log(`you've drawn ${numberOfDrawnCards} cards already`)
+    }
+    
+
     const drawnCard = room.gameDeck.pop();
     console.log(`${socket.data.user} drew card ${drawnCard.name} (${drawnCard.details}) in room ${socket.data.room}`);
+
+    
+
+    
+    
 
     socket.emit("draw card result", {
       success: true,
