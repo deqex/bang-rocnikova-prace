@@ -869,6 +869,31 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("kit carlson ability", () => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData || !room.gameDeck) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Kit Carlson ability rejected: ${socket.data.user} tried to use his ability when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+    
+    const availableCards = [];
+    
+    for (let i = 0; i < 4; i++) { //shoutout stepan
+      availableCards.push(room.gameDeck.pop());
+    }
+    
+    console.log(`${socket.data.user} used Kit Carlson ability. Drew ${availableCards.length} cards.`);
+
+    io.to(socket.data.room).emit("kit carlson cards", {
+      cards: availableCards,
+      for: socket.data.user,
+    });
+  })
+
   socket.on("play saloon", () => {
     if (!socket.data.room) return;
 

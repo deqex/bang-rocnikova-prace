@@ -231,7 +231,7 @@ function calculateDistance(playerA, playerB, totalPlayers) {
 function generateGameData(players) {
   const championData = { // generovano pomoci ai 
     "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
-    "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
+   // "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
   //  "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
     "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
    // "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
@@ -656,6 +656,7 @@ function renderPlayerCards(gameData) {
   gameArea.appendChild(controls);
 
   document.getElementById("drawCard").addEventListener("click", () => {
+
     if (currentTurn !== username) {
       console.log("not your turn");
       return;
@@ -663,7 +664,7 @@ function renderPlayerCards(gameData) {
 
     const currentPlayer = players.find(p => p.username === username);
     if (currentPlayer.champion === "Kit Carlson") {
-      
+      socket.emit("kit carlson ability");
     }
     numberOfDrawnCards++;
     socket.emit("draw card", numberOfDrawnCards);
@@ -2197,6 +2198,18 @@ panicStyle.textContent = `
 }
 `;
 document.head.appendChild(panicStyle);
+
+
+socket.on("kit carlson cards", (data) => {
+  console.log(`received ${data.cards} for ${data.for}`);
+  kitCarlsonFunction(data)
+});
+
+function kitCarlsonFunction(data) {
+  const kitCarlsonDialog = document.createElement("div")
+  kitCarlsonDialog.className = "kit-carlson-dialog";
+
+}
 
 socket.on("general store cards", (data) => {
   console.log("General Store cards received:", data.cards);
