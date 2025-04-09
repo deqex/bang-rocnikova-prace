@@ -663,14 +663,19 @@ function renderPlayerCards(gameData) {
     }
 
     const currentPlayer = players.find(p => p.username === username);
-    if (currentPlayer.champion === "Kit Carlson") {
+    if (currentPlayer.champion === "Kit Carlson" && numberOfDrawnCards === 0) {
       socket.emit("kit carlson ability");
+    numberOfDrawnCards++;
+      return;
     }
-    numberOfDrawnCards++;
-    socket.emit("draw card", numberOfDrawnCards);
 
-    numberOfDrawnCards++;
+    if (numberOfDrawnCards >= 1) {
+      console.log("already drawn this turn");
+      return;
+    }
+
     socket.emit("draw card", numberOfDrawnCards);
+    numberOfDrawnCards++;
   });
 
   document.getElementById("playCard").addEventListener("click", () => {
@@ -1139,21 +1144,23 @@ socket.on("update card count", (playerUsername, cardCount) => {
   }
 });
 
-socket.on("draw card result", (result) => {
-  if (result.success) {
-    const drawnCard = result.card;
-    playerHand.push(drawnCard);
-    console.log("Drew card:", drawnCard);
-    console.log(`Cards remaining in deck: ${result.remainingCards}`);
-
+socket.on("draw card result", (data) => {
+  if (data.success) {
     const currentPlayer = players.find(p => p.username === username);
+    
+    if (currentPlayer.champion === "Kit Carlson" && numberOfDrawnCards === 0) {
+      socket.emit("kit carlson ability");
+      return; 
+    }
+    
+    playerHand.push(data.card);
     if (currentPlayer) {
       currentPlayer.cardCount = playerHand.length;
       socket.emit("update card count", username, playerHand.length);
     }
     renderPlayerCards(players);
   } else {
-    console.log(result.message);
+    console.log(data.message);
   }
 });
 
@@ -2206,10 +2213,94 @@ socket.on("kit carlson cards", (data) => {
 });
 
 function kitCarlsonFunction(data) {
-  const kitCarlsonDialog = document.createElement("div")
+  const existingDialog = document.querySelector('.kit-carlson-dialog');
+  if (existingDialog) {
+    document.body.removeChild(existingDialog);
+  }
+
+  const kitCarlsonDialog = document.createElement("div");
   kitCarlsonDialog.className = "kit-carlson-dialog";
 
+  let dialogHTML = `
+    <div class="kit-carlson-content">
+      <h3>Kit Carlson Ability</h3>
+      <p class="instruction">Select 2 cards to keep. The remaining card will be placed back on top of the deck.</p>
+      <div class="kit-carlson-cards">`;
+  
+  data.cards.forEach(card => { //pak fixni at to actually vypada jak karta
+    dialogHTML += `
+      <div class="kit-carlson-card" data-name="${card.name}" data-details="${card.details}"> 
+        <div class="card-name">${card.name}</div>
+        <div class="card-details">${card.details}</div>
+      </div>`;
+  });
+  
+  dialogHTML += `
+      </div>
+      <div class="selected-count">Selected: 0/2</div>
+      <button class="confirm-selection" disabled>Confirm Selection</button>
+    </div>`;
+  
+  kitCarlsonDialog.innerHTML = dialogHTML;
+  document.body.appendChild(kitCarlsonDialog);
+
+  const selectedCards = [];
+  const cards = kitCarlsonDialog.querySelectorAll('.kit-carlson-card');
+  const selectedCount = kitCarlsonDialog.querySelector('.selected-count');
+  const confirmButton = kitCarlsonDialog.querySelector('.confirm-selection');
+
+  cards.forEach(cardElement => {
+    cardElement.addEventListener('click', () => {
+      const cardName = cardElement.getAttribute('data-name');
+      const cardDetails = cardElement.getAttribute('data-details');
+      const card = { name: cardName, details: cardDetails };
+      
+      if (cardElement.classList.contains('selected')) {
+        cardElement.classList.remove('selected');
+        const index = selectedCards.findIndex(c => c.name === cardName && c.details === cardDetails);
+        if (index !== -1) {
+          selectedCards.splice(index, 1);
+        }
+      } else if (selectedCards.length < 2) {
+        cardElement.classList.add('selected');
+        selectedCards.push(card);
+      }
+
+      selectedCount.textContent = `Selected: ${selectedCards.length}/2`;
+      confirmButton.disabled = selectedCards.length !== 2;
+    });
+  });
+
+  confirmButton.addEventListener('click', () => {
+    if (selectedCards.length === 2) {
+      socket.emit('kit carlson select', {
+        selectedCards: selectedCards
+      });
+      
+      selectedCards.forEach(card => {
+        playerHand.push(card);
+      });
+      
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+        socket.emit("update card count", username, playerHand.length);
+      }
+      
+      document.body.removeChild(kitCarlsonDialog);
+    }
+  });
 }
+
+socket.on("kit carlson cards", (data) => {
+  if (data.for === username) {
+    kitCarlsonFunction(data);
+  }
+});
+
+socket.on("kit carlson complete", (data) => {
+  renderPlayerCards(players);
+});
 
 socket.on("general store cards", (data) => {
   console.log("General Store cards received:", data.cards);

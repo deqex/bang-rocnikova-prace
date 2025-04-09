@@ -882,17 +882,62 @@ io.on("connection", (socket) => {
     
     const availableCards = [];
     
-    for (let i = 0; i < 4; i++) { //shoutout stepan
-      availableCards.push(room.gameDeck.pop());
+    for (let i = 0; i < 3; i++) {
+      if (room.gameDeck.length > 0) {
+        availableCards.push(room.gameDeck.pop());
+      }
     }
     
     console.log(`${socket.data.user} used Kit Carlson ability. Drew ${availableCards.length} cards.`);
 
-    io.to(socket.data.room).emit("kit carlson cards", {
+    room.kitCarlsonCards = {
       cards: availableCards,
-      for: socket.data.user,
+      player: socket.data.user
+    };
+
+    socket.emit("kit carlson cards", {
+      cards: availableCards,
+      for: socket.data.user
     });
-  })
+  });
+
+  socket.on("kit carlson select", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.kitCarlsonCards) return;
+
+    if (room.kitCarlsonCards.player !== socket.data.user) {
+      console.log(`Kit Carlson selection rejected: ${socket.data.user} tried to select when it's ${room.kitCarlsonCards.player}'s turn`);
+      return;
+    }
+
+    const selectedCards = data.selectedCards;
+    const remainingCards = room.kitCarlsonCards.cards.filter(
+      card => !selectedCards.some(selected => selected.name === card.name && selected.details === card.details
+      )
+    );
+
+    remainingCards.reverse().forEach(card => {
+      room.gameDeck.push(card);
+    });
+
+    delete room.kitCarlsonCards;
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+
+    if (playerData) {
+      playerData.hand.push(...selectedCards);
+    }
+
+    socket.emit("kit carlson complete", {
+      selectedCards: selectedCards
+    });
+
+    io.to(socket.data.room).emit("update player hand", {
+      player: socket.data.user,
+      cards: playerData.hand
+    });
+  });
 
   socket.on("play saloon", () => {
     if (!socket.data.room) return;
