@@ -237,12 +237,12 @@ function generateGameData(players) {
    // "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
  //   "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
    // "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
-    //"El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
+    "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
     //"Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
     //"Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
  //   "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
-    "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
-    "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
+   // "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
+   // "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
     "Vulture Sam": { baseHP: 4, description: "Takes all cards of eliminated players" }
   };
 
@@ -665,15 +665,19 @@ function renderPlayerCards(gameData) {
     const currentPlayer = players.find(p => p.username === username);
     if (currentPlayer.champion === "Kit Carlson" && numberOfDrawnCards === 0) {
       socket.emit("kit carlson ability");
-    numberOfDrawnCards++;
+      numberOfDrawnCards++;
+      numberOfDrawnCards++;
       return;
     }
 
-    if (numberOfDrawnCards >= 1) {
+    if (numberOfDrawnCards >= 2) {
       console.log("already drawn this turn");
       return;
     }
 
+    socket.emit("draw card", numberOfDrawnCards);
+    numberOfDrawnCards++;
+    
     socket.emit("draw card", numberOfDrawnCards);
     numberOfDrawnCards++;
   });
@@ -2666,5 +2670,3 @@ socket.on("el gringo draw", (data) => {
     }
   }
 });
-
-document.head.appendChild(elGringoStyle);
