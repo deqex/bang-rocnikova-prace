@@ -926,6 +926,9 @@ io.on("connection", (socket) => {
     const playerData = room.gameData.find(player => player.username === socket.data.user);
 
     if (playerData) {
+      if (!playerData.hand) {
+        playerData.hand = [];
+      }
       playerData.hand.push(...selectedCards);
     }
 
@@ -935,7 +938,7 @@ io.on("connection", (socket) => {
 
     io.to(socket.data.room).emit("update player hand", {
       player: socket.data.user,
-      cards: playerData.hand
+      cards: playerData?.hand || []
     });
   });
 
