@@ -909,6 +909,7 @@ function renderPlayerCards(gameData) {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
             playerHand.splice(index, 1);
+            discardCard(card); 
             currentPlayer.cardCount = playerHand.length;
             currentPlayer.hp = currentPlayer.hp + 1;
             socket.emit("heal self", {
@@ -926,17 +927,15 @@ function renderPlayerCards(gameData) {
         if (card.name === "Wells Fargo") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
-
             playerHand.splice(index, 1);
+            discardCard(card); 
             socket.emit("draw card");
             socket.emit("draw card");
             socket.emit("draw card");
-
+            
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
-            socket.emit("update attributes", username, currentPlayer.attributes);
-            console.log("Equipped Wells Fargo: Draw 3 cards");
-
+            console.log("Used Wells Fargo: Draw 3 cards");
           }
           document.body.removeChild(cardMenu);
           cardSelectionOpen = false;
@@ -947,16 +946,14 @@ function renderPlayerCards(gameData) {
         if (card.name === "Stagecoach") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
-
             playerHand.splice(index, 1);
+            discardCard(card); 
             socket.emit("draw card");
             socket.emit("draw card");
-
+            
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
-            socket.emit("update attributes", username, currentPlayer.attributes);
-            console.log("Equipped Stagecoach: Draw 2 cards");
-
+            console.log("Used Stagecoach: Draw 2 cards");
           }
           document.body.removeChild(cardMenu);
           cardSelectionOpen = false;
@@ -1004,7 +1001,7 @@ function renderPlayerCards(gameData) {
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
-            socket.emit("play general store");
+            socket.emit("play general store", { card: card });
             console.log("Played General Store: Drawing cards for everyone to choose in turns");
           }
           document.body.removeChild(cardMenu);
@@ -1019,7 +1016,7 @@ function renderPlayerCards(gameData) {
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
-            socket.emit("play saloon");
+            socket.emit("play saloon", { card: card });
             console.log("Played Saloon: Healing all players by 1 HP");
           }
           document.body.removeChild(cardMenu);
@@ -1243,6 +1240,7 @@ function handleCardTargeting(event) {
 
   if (cardIndex !== -1) {
     playerHand.splice(cardIndex, 1);
+    discardCard(selectedCard);
     currentPlayer.cardCount = playerHand.length;
     socket.emit("update card count", username, playerHand.length);
   }
@@ -1314,6 +1312,7 @@ function showMissedDialog(attacker, missedCard) {
     const cardIndex = playerHand.findIndex(card => card.name === missedCard.name && card.details === missedCard.details);
     if (cardIndex !== -1) {
       playerHand.splice(cardIndex, 1);
+      discardCard(missedCard);
       const currentPlayer = players.find(p => p.username === username);
       if (currentPlayer) {
         currentPlayer.cardCount = playerHand.length;
@@ -1476,6 +1475,7 @@ function showIndiansDialog(attacker, bangCard) {
       const cardIndex = playerHand.findIndex(card => card.name === bangCard.name && card.details === bangCard.details);
       if (cardIndex !== -1) {
         playerHand.splice(cardIndex, 1);
+        discardCard(bangCard);
         const currentPlayer = players.find(p => p.username === username);
         if (currentPlayer) {
           currentPlayer.cardCount = playerHand.length;
@@ -1754,6 +1754,7 @@ function handleCatBalouTargeting(event) {
 
   if (cardIndex !== -1) {
     playerHand.splice(cardIndex, 1);
+    discardCard(selectedCard);
     currentPlayer.cardCount = playerHand.length;
     socket.emit("update card count", username, playerHand.length);
   }
@@ -1777,6 +1778,8 @@ function disableCatBalouTargeting() {
 
 function showCatBalouOptionsDialog(targetUsername) {
   const targetPlayer = players.find(p => p.username === targetUsername);
+  // Store the card reference before we lose it
+  const cardReference = {...selectedCard};
   
   const optionsDialog = document.createElement("div");
   optionsDialog.className = "cat-balou-dialog";
@@ -1801,7 +1804,8 @@ function showCatBalouOptionsDialog(targetUsername) {
   document.getElementById("randomCard").addEventListener("click", () => {
     socket.emit("play cat balou", {
       target: targetUsername,
-      action: "takeCard"
+      action: "takeCard",
+      card: cardReference  // Use the saved reference
     });
     document.body.removeChild(optionsDialog);
     renderPlayerCards(players);
@@ -1811,12 +1815,12 @@ function showCatBalouOptionsDialog(targetUsername) {
   if (attributeButton) {
     attributeButton.addEventListener("click", () => {
       document.body.removeChild(optionsDialog);
-      showAttributeSelectionDialog(targetUsername, targetPlayer.attributes);
+      showAttributeSelectionDialog(targetUsername, targetPlayer.attributes, cardReference);
     });
   }
 }
 
-function showAttributeSelectionDialog(targetUsername, attributes) {
+function showAttributeSelectionDialog(targetUsername, attributes, cardReference) {
   const attributeDialog = document.createElement("div");
   attributeDialog.className = "cat-balou-dialog";
   
@@ -1842,7 +1846,8 @@ function showAttributeSelectionDialog(targetUsername, attributes) {
       socket.emit("play cat balou", {
         target: targetUsername,
         action: "removeAttribute",
-        attribute: attributeToRemove
+        attribute: attributeToRemove,
+        card: cardReference  // Use the saved reference
       });
       document.body.removeChild(attributeDialog);
       renderPlayerCards(players);
@@ -1857,6 +1862,7 @@ socket.on("cat balou result", (data) => {
     if (data.target === username && playerHand.length > 0) {
       const randomIndex = Math.floor(Math.random() * playerHand.length);
       const removedCard = playerHand.splice(randomIndex, 1)[0];
+      discardCard(removedCard);
       
       const currentPlayer = players.find(p => p.username === username);
       if (currentPlayer) {
@@ -1983,6 +1989,7 @@ function handlePanicTargeting(event) {
 
   if (cardIndex !== -1) {
     playerHand.splice(cardIndex, 1);
+    discardCard(selectedCard);
     currentPlayer.cardCount = playerHand.length;
     socket.emit("update card count", username, playerHand.length);
   }
@@ -1993,6 +2000,8 @@ function handlePanicTargeting(event) {
 
 function showPanicOptionsDialog(targetUsername) {
   const targetPlayer = players.find(p => p.username === targetUsername);
+  // Store the card reference before we lose it
+  const cardReference = {...selectedCard};
   
   const optionsDialog = document.createElement("div");
   optionsDialog.className = "panic-dialog";
@@ -2021,7 +2030,8 @@ function showPanicOptionsDialog(targetUsername) {
     stealCardButton.addEventListener("click", () => {
       socket.emit("play panic", {
         target: targetUsername,
-        action: "stealCard"
+        action: "stealCard",
+        card: cardReference  // Use the saved reference
       });
       document.body.removeChild(optionsDialog);
       renderPlayerCards(players);
@@ -2032,12 +2042,12 @@ function showPanicOptionsDialog(targetUsername) {
   if (stealAttributeButton) {
     stealAttributeButton.addEventListener("click", () => {
       document.body.removeChild(optionsDialog);
-      showAttributeSelectionDialogForPanic(targetUsername, targetPlayer.attributes);
+      showAttributeSelectionDialogForPanic(targetUsername, targetPlayer.attributes, cardReference);
     });
   }
 }
 
-function showAttributeSelectionDialogForPanic(targetUsername, attributes) {
+function showAttributeSelectionDialogForPanic(targetUsername, attributes, cardReference) {
   const attributeDialog = document.createElement("div");
   attributeDialog.className = "panic-dialog";
   
@@ -2063,7 +2073,8 @@ function showAttributeSelectionDialogForPanic(targetUsername, attributes) {
       socket.emit("play panic", {
         target: targetUsername,
         action: "stealAttribute",
-        attribute: attributeToSteal
+        attribute: attributeToSteal,
+        card: cardReference  
       });
       document.body.removeChild(attributeDialog);
       renderPlayerCards(players);
@@ -2092,6 +2103,8 @@ socket.on("panic result", (data) => {
         from: username,
         to: data.attacker
       });
+      
+      renderPlayerCards(players);
     }
     
     if (data.attacker === username && data.stolenCard) {
@@ -2670,3 +2683,27 @@ socket.on("el gringo draw", (data) => {
     }
   }
 });
+
+function discardCard(card) {
+  socket.emit("discard card", card);
+}
+
+socket.on("use missed", (data) => {
+  const missedCard = playerHand.find(card => card.name === "Missed!");
+  if (missedCard) {
+    const cardIndex = playerHand.indexOf(missedCard);
+    if (cardIndex !== -1) {
+      playerHand.splice(cardIndex, 1);
+      discardCard(missedCard);
+      
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+        socket.emit("update card count", username, playerHand.length);
+      }
+    }
+  }
+  
+  renderPlayerCards(players);
+});
+
