@@ -1,7 +1,6 @@
 # bang-rocnikova-prace
-https://to-do.office.com/tasks/id/l-26vgsu8u18h/details
+https://to-do.office.com/tasks/AAMkADllOGEwYjNmLTVmOWEtNGM5Mi1hMzNiLTk0YjkwZTVhMDQ3YgAuAAAAAADe_qCaefwwSZoO3TKiY1UFAQA1JDFkSnnfRpuhm2F_nTsKAAJZy_UDAAA=
 
 veci na kteru zapomenes:
-- possibly ten socket on dole je useless uz jsem zapomnel ale taky ne koukni sse na to
-- playcard otevreny pak end turn a co kdyz pak muzes hrat logicky ne ale jako co kdyby
+- possibly ten socket on dole je useless uz jsem zapomnel ale taky ne koukni sse na to (ja forgornul ktera to je lmao)
 
