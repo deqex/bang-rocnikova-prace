@@ -35,6 +35,7 @@ let cardSelectionOpen = false; //mozna pak odeber
 let targetingMode = false; // Flag to track if we're in targeting mode
 let selectedCard = null; // Track the selected card for targeting
 const listOfWeapons = ["Winchester", "Rev. Carabine", "Schofield", "Remington"];
+let numberOfDrawnCards = 0;
 
 enterUsername.onclick = () => {
   username = nameInput.value;
@@ -230,18 +231,18 @@ function calculateDistance(playerA, playerB, totalPlayers) {
 function generateGameData(players) {
   const championData = { // generovano pomoci ai 
     "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
-    "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
-    "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
+   // "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
+  //  "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
     "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
-    "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
-    "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
-    "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
+   // "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
+ //   "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
+   // "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
     "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
-    "Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
-    "Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
-    "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
-    "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
-    "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
+    //"Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
+    //"Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
+ //   "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
+   // "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
+   // "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
     "Vulture Sam": { baseHP: 4, description: "Takes all cards of eliminated players" }
   };
 
@@ -655,11 +656,30 @@ function renderPlayerCards(gameData) {
   gameArea.appendChild(controls);
 
   document.getElementById("drawCard").addEventListener("click", () => {
+
     if (currentTurn !== username) {
       console.log("not your turn");
       return;
     }
-    socket.emit("draw card");
+
+    const currentPlayer = players.find(p => p.username === username);
+    if (currentPlayer.champion === "Kit Carlson" && numberOfDrawnCards === 0) {
+      socket.emit("kit carlson ability");
+      numberOfDrawnCards++;
+      numberOfDrawnCards++;
+      return;
+    }
+
+    if (numberOfDrawnCards >= 2) {
+      console.log("already drawn this turn");
+      return;
+    }
+
+    socket.emit("draw card", numberOfDrawnCards);
+    numberOfDrawnCards++;
+    
+    socket.emit("draw card", numberOfDrawnCards);
+    numberOfDrawnCards++;
   });
 
   document.getElementById("playCard").addEventListener("click", () => {
@@ -889,6 +909,7 @@ function renderPlayerCards(gameData) {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
             playerHand.splice(index, 1);
+            discardCard(card); 
             currentPlayer.cardCount = playerHand.length;
             currentPlayer.hp = currentPlayer.hp + 1;
             socket.emit("heal self", {
@@ -907,14 +928,14 @@ function renderPlayerCards(gameData) {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
             playerHand.splice(index, 1);
+            discardCard(card); 
             socket.emit("draw card");
             socket.emit("draw card");
             socket.emit("draw card");
-
+            
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
-            socket.emit("update attributes", username, currentPlayer.attributes);
-            console.log("Equipped Wells Fargo: Draw 3 cards");
+            console.log("Used Wells Fargo: Draw 3 cards");
           }
           document.body.removeChild(cardMenu);
           cardSelectionOpen = false;
@@ -926,13 +947,13 @@ function renderPlayerCards(gameData) {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
             playerHand.splice(index, 1);
+            discardCard(card); 
             socket.emit("draw card");
             socket.emit("draw card");
-
+            
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
-            socket.emit("update attributes", username, currentPlayer.attributes);
-            console.log("Equipped Stagecoach: Draw 2 cards");
+            console.log("Used Stagecoach: Draw 2 cards");
           }
           document.body.removeChild(cardMenu);
           cardSelectionOpen = false;
@@ -980,7 +1001,7 @@ function renderPlayerCards(gameData) {
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
-            socket.emit("play general store");
+            socket.emit("play general store", { card: card });
             console.log("Played General Store: Drawing cards for everyone to choose in turns");
           }
           document.body.removeChild(cardMenu);
@@ -995,7 +1016,7 @@ function renderPlayerCards(gameData) {
             playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
-            socket.emit("play saloon");
+            socket.emit("play saloon", { card: card });
             console.log("Played Saloon: Healing all players by 1 HP");
           }
           document.body.removeChild(cardMenu);
@@ -1049,6 +1070,7 @@ function renderPlayerCards(gameData) {
 
 
   document.getElementById("endTurn").addEventListener("click", () => {
+    numberOfDrawnCards = 0;
     if (currentTurn !== username) {
       console.log("Not your turn");
       return;
@@ -1144,21 +1166,23 @@ socket.on("update card count", (playerUsername, cardCount) => {
   }
 });
 
-socket.on("draw card result", (result) => {
-  if (result.success) {
-    const drawnCard = result.card;
-    playerHand.push(drawnCard);
-    console.log("Drew card:", drawnCard);
-    console.log(`Cards remaining in deck: ${result.remainingCards}`);
-
+socket.on("draw card result", (data) => {
+  if (data.success) {
     const currentPlayer = players.find(p => p.username === username);
+    
+    if (currentPlayer.champion === "Kit Carlson" && numberOfDrawnCards === 0) {
+      socket.emit("kit carlson ability");
+      return; 
+    }
+    
+    playerHand.push(data.card);
     if (currentPlayer) {
       currentPlayer.cardCount = playerHand.length;
       socket.emit("update card count", username, playerHand.length);
     }
     renderPlayerCards(players);
   } else {
-    console.log(result.message);
+    console.log(data.message);
   }
 });
 
@@ -1237,6 +1261,7 @@ function handleCardTargeting(event) {
 
   if (cardIndex !== -1) {
     playerHand.splice(cardIndex, 1);
+    discardCard(selectedCard);
     currentPlayer.cardCount = playerHand.length;
     socket.emit("update card count", username, playerHand.length);
   }
@@ -1308,6 +1333,7 @@ function showMissedDialog(attacker, missedCard) {
     const cardIndex = playerHand.findIndex(card => card.name === missedCard.name && card.details === missedCard.details);
     if (cardIndex !== -1) {
       playerHand.splice(cardIndex, 1);
+      discardCard(missedCard);
       const currentPlayer = players.find(p => p.username === username);
       if (currentPlayer) {
         currentPlayer.cardCount = playerHand.length;
@@ -1470,6 +1496,7 @@ function showIndiansDialog(attacker, bangCard) {
       const cardIndex = playerHand.findIndex(card => card.name === bangCard.name && card.details === bangCard.details);
       if (cardIndex !== -1) {
         playerHand.splice(cardIndex, 1);
+        discardCard(bangCard);
         const currentPlayer = players.find(p => p.username === username);
         if (currentPlayer) {
           currentPlayer.cardCount = playerHand.length;
@@ -1748,6 +1775,7 @@ function handleCatBalouTargeting(event) {
 
   if (cardIndex !== -1) {
     playerHand.splice(cardIndex, 1);
+    discardCard(selectedCard);
     currentPlayer.cardCount = playerHand.length;
     socket.emit("update card count", username, playerHand.length);
   }
@@ -1771,6 +1799,8 @@ function disableCatBalouTargeting() {
 
 function showCatBalouOptionsDialog(targetUsername) {
   const targetPlayer = players.find(p => p.username === targetUsername);
+  // Store the card reference before we lose it
+  const cardReference = {...selectedCard};
   
   const optionsDialog = document.createElement("div");
   optionsDialog.className = "cat-balou-dialog";
@@ -1795,7 +1825,8 @@ function showCatBalouOptionsDialog(targetUsername) {
   document.getElementById("randomCard").addEventListener("click", () => {
     socket.emit("play cat balou", {
       target: targetUsername,
-      action: "takeCard"
+      action: "takeCard",
+      card: cardReference  // Use the saved reference
     });
     document.body.removeChild(optionsDialog);
     renderPlayerCards(players);
@@ -1805,12 +1836,12 @@ function showCatBalouOptionsDialog(targetUsername) {
   if (attributeButton) {
     attributeButton.addEventListener("click", () => {
       document.body.removeChild(optionsDialog);
-      showAttributeSelectionDialog(targetUsername, targetPlayer.attributes);
+      showAttributeSelectionDialog(targetUsername, targetPlayer.attributes, cardReference);
     });
   }
 }
 
-function showAttributeSelectionDialog(targetUsername, attributes) {
+function showAttributeSelectionDialog(targetUsername, attributes, cardReference) {
   const attributeDialog = document.createElement("div");
   attributeDialog.className = "cat-balou-dialog";
   
@@ -1836,7 +1867,8 @@ function showAttributeSelectionDialog(targetUsername, attributes) {
       socket.emit("play cat balou", {
         target: targetUsername,
         action: "removeAttribute",
-        attribute: attributeToRemove
+        attribute: attributeToRemove,
+        card: cardReference  // Use the saved reference
       });
       document.body.removeChild(attributeDialog);
       renderPlayerCards(players);
@@ -1851,6 +1883,7 @@ socket.on("cat balou result", (data) => {
     if (data.target === username && playerHand.length > 0) {
       const randomIndex = Math.floor(Math.random() * playerHand.length);
       const removedCard = playerHand.splice(randomIndex, 1)[0];
+      discardCard(removedCard);
       
       const currentPlayer = players.find(p => p.username === username);
       if (currentPlayer) {
@@ -1977,6 +2010,7 @@ function handlePanicTargeting(event) {
 
   if (cardIndex !== -1) {
     playerHand.splice(cardIndex, 1);
+    discardCard(selectedCard);
     currentPlayer.cardCount = playerHand.length;
     socket.emit("update card count", username, playerHand.length);
   }
@@ -1987,6 +2021,8 @@ function handlePanicTargeting(event) {
 
 function showPanicOptionsDialog(targetUsername) {
   const targetPlayer = players.find(p => p.username === targetUsername);
+  // Store the card reference before we lose it
+  const cardReference = {...selectedCard};
   
   const optionsDialog = document.createElement("div");
   optionsDialog.className = "panic-dialog";
@@ -2015,7 +2051,8 @@ function showPanicOptionsDialog(targetUsername) {
     stealCardButton.addEventListener("click", () => {
       socket.emit("play panic", {
         target: targetUsername,
-        action: "stealCard"
+        action: "stealCard",
+        card: cardReference  // Use the saved reference
       });
       document.body.removeChild(optionsDialog);
       renderPlayerCards(players);
@@ -2026,12 +2063,12 @@ function showPanicOptionsDialog(targetUsername) {
   if (stealAttributeButton) {
     stealAttributeButton.addEventListener("click", () => {
       document.body.removeChild(optionsDialog);
-      showAttributeSelectionDialogForPanic(targetUsername, targetPlayer.attributes);
+      showAttributeSelectionDialogForPanic(targetUsername, targetPlayer.attributes, cardReference);
     });
   }
 }
 
-function showAttributeSelectionDialogForPanic(targetUsername, attributes) {
+function showAttributeSelectionDialogForPanic(targetUsername, attributes, cardReference) {
   const attributeDialog = document.createElement("div");
   attributeDialog.className = "panic-dialog";
   
@@ -2057,7 +2094,8 @@ function showAttributeSelectionDialogForPanic(targetUsername, attributes) {
       socket.emit("play panic", {
         target: targetUsername,
         action: "stealAttribute",
-        attribute: attributeToSteal
+        attribute: attributeToSteal,
+        card: cardReference  
       });
       document.body.removeChild(attributeDialog);
       renderPlayerCards(players);
@@ -2086,6 +2124,8 @@ socket.on("panic result", (data) => {
         from: username,
         to: data.attacker
       });
+      
+      renderPlayerCards(players);
     }
     
     if (data.attacker === username && data.stolenCard) {
@@ -2203,6 +2243,102 @@ panicStyle.textContent = `
 }
 `;
 document.head.appendChild(panicStyle);
+
+
+socket.on("kit carlson cards", (data) => {
+  console.log(`received ${data.cards} for ${data.for}`);
+  kitCarlsonFunction(data)
+});
+
+function kitCarlsonFunction(data) {
+  const existingDialog = document.querySelector('.kit-carlson-dialog');
+  if (existingDialog) {
+    document.body.removeChild(existingDialog);
+  }
+
+  const kitCarlsonDialog = document.createElement("div");
+  kitCarlsonDialog.className = "kit-carlson-dialog";
+
+  let dialogHTML = `
+    <div class="kit-carlson-content">
+      <h3>Kit Carlson Ability</h3>
+      <p class="instruction">Select 2 cards to keep. The remaining card will be placed back on top of the deck.</p>
+      <div class="kit-carlson-cards">`;
+  
+  data.cards.forEach(card => { //pak fixni at to actually vypada jak karta
+    dialogHTML += `
+      <div class="kit-carlson-card" data-name="${card.name}" data-details="${card.details}"> 
+        <div class="card-name">${card.name}</div>
+        <div class="card-details">${card.details}</div>
+      </div>`;
+  });
+  
+  dialogHTML += `
+      </div>
+      <div class="selected-count">Selected: 0/2</div>
+      <button class="confirm-selection" disabled>Confirm Selection</button>
+    </div>`;
+  
+  kitCarlsonDialog.innerHTML = dialogHTML;
+  document.body.appendChild(kitCarlsonDialog);
+
+  const selectedCards = [];
+  const cards = kitCarlsonDialog.querySelectorAll('.kit-carlson-card');
+  const selectedCount = kitCarlsonDialog.querySelector('.selected-count');
+  const confirmButton = kitCarlsonDialog.querySelector('.confirm-selection');
+
+  cards.forEach(cardElement => {
+    cardElement.addEventListener('click', () => {
+      const cardName = cardElement.getAttribute('data-name');
+      const cardDetails = cardElement.getAttribute('data-details');
+      const card = { name: cardName, details: cardDetails };
+      
+      if (cardElement.classList.contains('selected')) {
+        cardElement.classList.remove('selected');
+        const index = selectedCards.findIndex(c => c.name === cardName && c.details === cardDetails);
+        if (index !== -1) {
+          selectedCards.splice(index, 1);
+        }
+      } else if (selectedCards.length < 2) {
+        cardElement.classList.add('selected');
+        selectedCards.push(card);
+      }
+
+      selectedCount.textContent = `Selected: ${selectedCards.length}/2`;
+      confirmButton.disabled = selectedCards.length !== 2;
+    });
+  });
+
+  confirmButton.addEventListener('click', () => {
+    if (selectedCards.length === 2) {
+      socket.emit('kit carlson select', {
+        selectedCards: selectedCards
+      });
+      
+      selectedCards.forEach(card => {
+        playerHand.push(card);
+      });
+      
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+        socket.emit("update card count", username, playerHand.length);
+      }
+      
+      document.body.removeChild(kitCarlsonDialog);
+    }
+  });
+}
+
+socket.on("kit carlson cards", (data) => {
+  if (data.for === username) {
+    kitCarlsonFunction(data);
+  }
+});
+
+socket.on("kit carlson complete", (data) => {
+  renderPlayerCards(players);
+});
 
 socket.on("general store cards", (data) => {
   console.log("General Store cards received:", data.cards);
@@ -2568,6 +2704,30 @@ socket.on("el gringo draw", (data) => {
     }
   }
 });
+
+function discardCard(card) {
+  socket.emit("discard card", card);
+}
+
+socket.on("use missed", (data) => {
+  const missedCard = playerHand.find(card => card.name === "Missed!");
+  if (missedCard) {
+    const cardIndex = playerHand.indexOf(missedCard);
+    if (cardIndex !== -1) {
+      playerHand.splice(cardIndex, 1);
+      discardCard(missedCard);
+      
+      const currentPlayer = players.find(p => p.username === username);
+      if (currentPlayer) {
+        currentPlayer.cardCount = playerHand.length;
+        socket.emit("update card count", username, playerHand.length);
+      }
+    }
+  }
+  
+  renderPlayerCards(players);
+});
+
 
 function enableJailTargeting() {
   const playerCards = document.querySelectorAll('.player-card');

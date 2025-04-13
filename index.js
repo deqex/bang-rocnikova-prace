@@ -25,7 +25,9 @@ const roomsInfo = [ //pak odeber, nech na testovani
     gameActive: false,
     gameData: null,
     roomOwner: null,
-    maxPlayers: 4
+    maxPlayers: 4,
+    gameDeck: null,
+    discardPile: []
   },
   {
     roomNum: 2,
@@ -33,7 +35,9 @@ const roomsInfo = [ //pak odeber, nech na testovani
     gameActive: false,
     gameData: null,
     roomOwner: null,
-    maxPlayers: 4
+    maxPlayers: 4,
+    gameDeck: null,
+    discardPile: []
   },
   {
     roomNum: 3,
@@ -41,7 +45,9 @@ const roomsInfo = [ //pak odeber, nech na testovani
     gameActive: false,
     gameData: null,
     roomOwner: null,
-    maxPlayers: 4
+    maxPlayers: 4,
+    gameDeck: null,
+    discardPile: []
   },
 ];
 
@@ -49,6 +55,15 @@ io.on("connection", (socket) => {
   console.log(
     `User connected: ${socket.handshake.address}, ${socket.handshake.time}`
   );
+
+  // Helper function to add a card to the discard pile
+  function addCardToDiscardPile(room, card) {
+    if (!room.discardPile) {
+      room.discardPile = [];
+    }
+    room.discardPile.push(card);
+    console.log(`Card ${card.name} added to discard pile. Total cards: ${room.discardPile.length}`);
+  }
 
   socket.on("save username", (data) => {
     socket.data.user = data;
@@ -194,7 +209,9 @@ io.on("connection", (socket) => {
         gameData: null,
         roomOwner: socket.data.user,
         maxPlayers: parseInt(newMaxPlayers),
-        isPrivate: isPrivate
+        isPrivate: isPrivate,
+        gameDeck: null,
+        discardPile: []
       };
     }
 
@@ -301,6 +318,7 @@ io.on("connection", (socket) => {
 
     roomsInfo[room].gameActive = true;
     roomsInfo[room].gameData = gameData;
+    roomsInfo[room].discardPile = [];  // Initialize empty discard pile
 
     const sheriff = gameData.find(player => player.role === "Sheriff");
     roomsInfo[room].currentTurn = sheriff ? sheriff.username : null;
@@ -377,14 +395,21 @@ io.on("connection", (socket) => {
     io.to(socket.data.room).emit("update attributes", playerUsername, attributes);
   });
 
-  socket.on("draw card", () => {
+  socket.on("draw card", (numberOfDrawnCards) => {
     if (!socket.data.room) return;
     const room = roomsInfo[socket.data.room];
 
-    if (!room || !room.gameDeck || room.gameDeck.length === 0) {
-      console.log(`no cards left in deck for room ${socket.data.room} or room does not exist or room doesn't have a deck`);
-      socket.emit("draw card result", { success: false, message: "no cards left in deck (or doesn't have a deck somehow)" });
-      return;
+    if (!room.gameDeck || room.gameDeck.length === 0) {
+      if (room.discardPile.length > 0) {
+        console.log(`Deck empty, shuffling discard pile with ${room.discardPile.length} cards`);
+        room.gameDeck = shuffleArray([...room.discardPile]);
+        room.discardPile = [];
+        console.log(`New deck created with ${room.gameDeck.length} cards`);
+      } else {
+        console.log(`no cards left in deck for room ${socket.data.room}`);
+        socket.emit("draw card result", { success: false, message: "no cards left in deck" });
+        return;
+      }
     }
 
     if (room.currentTurn !== socket.data.user) {
@@ -393,6 +418,11 @@ io.on("connection", (socket) => {
       return;
     }
 
+    if(!socket.data.user.includes("q")) { // pak odeber pouze testing
+      if (numberOfDrawnCards > 2) return;
+      console.log(`you've drawn ${numberOfDrawnCards} cards already`)
+    }
+    
     const drawnCard = room.gameDeck.pop();
     console.log(`${socket.data.user} drew card ${drawnCard.name} (${drawnCard.details}) in room ${socket.data.room}`);
 
@@ -403,8 +433,14 @@ io.on("connection", (socket) => {
     });
   });
 
-
-
+  socket.on("discard card", (card) => {
+    if (!socket.data.room) return;
+    const room = roomsInfo[socket.data.room];
+    
+    if (room) {
+      addCardToDiscardPile(room, card);
+    }
+  });
 
   socket.on("play bang", (data) => {
     if (!socket.data.room) return;
@@ -417,7 +453,9 @@ io.on("connection", (socket) => {
       return;
     }
 
+    addCardToDiscardPile(room, data.card);
     console.log(`${socket.data.user} played Bang! targeting ${data.target} in room ${socket.data.room}`);
+
     io.to(socket.data.room).emit("bang attack", {
       attacker: socket.data.user,
       target: data.target,
@@ -436,7 +474,9 @@ io.on("connection", (socket) => {
       return;
     }
 
+    addCardToDiscardPile(room, data.card);
     console.log(`${socket.data.user} played Indians! in room ${socket.data.room}`);
+
     io.to(socket.data.room).emit("indians attack", {
       attacker: socket.data.user,
       card: data.card
@@ -449,6 +489,10 @@ io.on("connection", (socket) => {
     const room = roomsInfo[socket.data.room];
     if (!room || !room.gameData) return;
 
+    if (data.card) {
+      addCardToDiscardPile(room, data.card);
+    }
+    
     console.log(`${socket.data.user} used Bang! to defend against Indians! from ${data.attacker} in room ${socket.data.room}`);
 
     io.to(socket.data.room).emit("indians defended", {
@@ -468,7 +512,9 @@ io.on("connection", (socket) => {
       return;
     }
 
+    addCardToDiscardPile(room, data.card);
     console.log(`${socket.data.user} played Gatling in room ${socket.data.room}`);
+
     io.to(socket.data.room).emit("gatling attack", {
       attacker: socket.data.user,
       card: data.card
@@ -481,7 +527,10 @@ io.on("connection", (socket) => {
     const room = roomsInfo[socket.data.room];
     if (!room || !room.gameData) return;
 
-    console.log(`${socket.data.user} used Missed! to avoid Bang! from ${data.attacker} in room ${socket.data.room}`);
+    if (data.card) {
+      addCardToDiscardPile(room, data.card);
+      console.log(`${socket.data.user} used Missed! to avoid Bang! from ${data.attacker} in room ${socket.data.room}`);
+    }
 
     io.to(socket.data.room).emit("attack missed", {
       defender: socket.data.user,
@@ -607,6 +656,9 @@ io.on("connection", (socket) => {
       return;
     }
 
+    addCardToDiscardPile(room, data.card);
+    console.log(`${socket.data.user} played Cat Balou targeting ${data.target} in room ${socket.data.room}`);
+
     const targetPlayer = room.gameData.find(player => player.username === data.target);
     if (!targetPlayer) return;
 
@@ -647,6 +699,9 @@ io.on("connection", (socket) => {
       console.log(`Panic! play rejected: ${socket.data.user} tried to play Panic! when it's ${room.currentTurn}'s turn`);
       return;
     }
+
+    addCardToDiscardPile(room, data.card);
+    console.log(`${socket.data.user} played Panic! targeting ${data.target} in room ${socket.data.room}`);
 
     const targetPlayer = room.gameData.find(player => player.username === data.target);
     if (!targetPlayer) return;
@@ -718,12 +773,13 @@ io.on("connection", (socket) => {
       attackerSocket.emit("panic result", {
         attacker: data.to,
         target: data.from,
+        action: "stealCard",
         stolenCard: data.card
       });
     }
   });
 
-  socket.on("play general store", () => {
+  socket.on("play general store", (data) => {
     if (!socket.data.room) return;
 
     const room = roomsInfo[socket.data.room];
@@ -733,6 +789,9 @@ io.on("connection", (socket) => {
       console.log(`General Store play rejected: ${socket.data.user} tried to play General Store when it's ${room.currentTurn}'s turn`);
       return;
     }
+
+    addCardToDiscardPile(room, data.card);
+    console.log(`${socket.data.user} played General Store in room ${socket.data.room}`);
 
     const playerCount = room.gameData.length;
     
@@ -835,8 +894,7 @@ io.on("connection", (socket) => {
     // Check if all players have selected a card
     if (room.generalStore.currentSelectorIndex >= room.generalStore.selectionOrder.length) {
       console.log("All players have selected. General Store complete.");
-      
-      // Notify all players that the general store is complete
+            // Notify all players that the general store is complete
       Object.keys(room.generalStore.selectedCards).forEach(player => {
         io.to(socket.data.room).emit("general store complete", {
           selectedBy: player,
@@ -858,7 +916,80 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("play saloon", () => {
+  socket.on("kit carlson ability", () => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData || !room.gameDeck) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Kit Carlson ability rejected: ${socket.data.user} tried to use his ability when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+    
+    const availableCards = [];
+    
+    for (let i = 0; i < 3; i++) {
+      if (room.gameDeck.length > 0) {
+        availableCards.push(room.gameDeck.pop());
+      }
+    }
+    
+    console.log(`${socket.data.user} used Kit Carlson ability. Drew ${availableCards.length} cards.`);
+
+    room.kitCarlsonCards = {
+      cards: availableCards,
+      player: socket.data.user
+    };
+
+    socket.emit("kit carlson cards", {
+      cards: availableCards,
+      for: socket.data.user
+    });
+  });
+
+  socket.on("kit carlson select", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.kitCarlsonCards) return;
+
+    if (room.kitCarlsonCards.player !== socket.data.user) {
+      console.log(`Kit Carlson selection rejected: ${socket.data.user} tried to select when it's ${room.kitCarlsonCards.player}'s turn`);
+      return;
+    }
+
+    const selectedCards = data.selectedCards;
+    const remainingCards = room.kitCarlsonCards.cards.filter(
+      card => !selectedCards.some(selected => selected.name === card.name && selected.details === card.details
+      )
+    );
+
+    remainingCards.reverse().forEach(card => {
+      room.gameDeck.push(card);
+    });
+
+    delete room.kitCarlsonCards;
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+
+    if (playerData) {
+      if (!playerData.hand) {
+        playerData.hand = [];
+      }
+      playerData.hand.push(...selectedCards);
+    }
+
+    socket.emit("kit carlson complete", {
+      selectedCards: selectedCards
+    });
+
+    io.to(socket.data.room).emit("update player hand", {
+      player: socket.data.user,
+      cards: playerData?.hand || []
+    });
+  });
+
+  socket.on("play saloon", (data) => {
     if (!socket.data.room) return;
 
     const room = roomsInfo[socket.data.room];
@@ -869,6 +1000,7 @@ io.on("connection", (socket) => {
       return;
     }
 
+    addCardToDiscardPile(room, data.card);
     console.log(`${socket.data.user} played Saloon in room ${socket.data.room}. Healing all players by 1 HP.`);
     
     room.gameData.forEach(player => {
@@ -998,3 +1130,12 @@ io.on("connection", (socket) => {
 server.listen(3000, () => {
   console.log('server running at http://localhost:3000');
 });
+
+function shuffleArray(array) {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}

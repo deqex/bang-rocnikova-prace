@@ -1,0 +1,112 @@
+.kit-carlson-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.kit-carlson-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 800px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+}
+
+.kit-carlson-dialog h3 {
+  color: #333;
+  margin: 0 0 10px;
+  font-size: 24px;
+}
+
+.kit-carlson-dialog p {
+  color: #666;
+  margin: 5px 0;
+}
+
+.kit-carlson-dialog .instruction {
+  color: #ff5722;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.kit-carlson-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin: 20px 0;
+  padding: 0 20px;
+}
+
+.kit-carlson-card {
+  background-color: #f8f8f8;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.kit-carlson-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.kit-carlson-card.selected {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.2);
+}
+
+.kit-carlson-card .card-name {
+  font-weight: bold;
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.kit-carlson-card .card-details {
+  font-size: 14px;
+  color: #666;
+}
+
+.selected-count {
+  margin: 15px 0;
+  font-weight: bold;
+  color: #2196f3;
+}
+
+.kit-carlson-dialog .confirm-selection {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.kit-carlson-dialog .confirm-selection:hover:not(:disabled) {
+  background-color: #43a047;
+}
+
+.kit-carlson-dialog .confirm-selection:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
