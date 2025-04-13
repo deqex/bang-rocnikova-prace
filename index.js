@@ -408,7 +408,7 @@ io.on("connection", (socket) => {
       } else {
         console.log(`no cards left in deck for room ${socket.data.room}`);
         socket.emit("draw card result", { success: false, message: "no cards left in deck" });
-        return;
+      return;
       }
     }
 
@@ -422,7 +422,7 @@ io.on("connection", (socket) => {
       if (numberOfDrawnCards > 2) return;
       console.log(`you've drawn ${numberOfDrawnCards} cards already`)
     }
-    
+
     const drawnCard = room.gameDeck.pop();
     console.log(`${socket.data.user} drew card ${drawnCard.name} (${drawnCard.details}) in room ${socket.data.room}`);
 
@@ -436,7 +436,7 @@ io.on("connection", (socket) => {
   socket.on("discard card", (card) => {
     if (!socket.data.room) return;
     const room = roomsInfo[socket.data.room];
-    
+
     if (room) {
       addCardToDiscardPile(room, card);
     }
@@ -529,7 +529,7 @@ io.on("connection", (socket) => {
 
     if (data.card) {
       addCardToDiscardPile(room, data.card);
-      console.log(`${socket.data.user} used Missed! to avoid Bang! from ${data.attacker} in room ${socket.data.room}`);
+    console.log(`${socket.data.user} used Missed! to avoid Bang! from ${data.attacker} in room ${socket.data.room}`);
     }
 
     io.to(socket.data.room).emit("attack missed", {
@@ -986,6 +986,63 @@ io.on("connection", (socket) => {
     io.to(socket.data.room).emit("update player hand", {
       player: socket.data.user,
       cards: playerData?.hand || []
+    });
+  });
+
+  socket.on("check discard pile", () => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room]; 
+    if (!room) return; //paranoia coding
+
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+    if (!playerData || playerData.champion !== "Pedro Ramirez") {
+      console.log(`${socket.data.user} is not Pedro Ramirez`);
+      return;
+    }
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Pedro Ramirez ability rejected: not ${socket.data.user}'s turn`);
+      return;
+    }
+
+    if (!room.discardPile || room.discardPile.length === 0) {
+      socket.emit("discard pile top", { card: null });
+      return;
+    }
+
+    const topCard = room.discardPile[room.discardPile.length - 1];
+    console.log(`${socket.data.user} checking discard pile. Top card: ${topCard.name} (${topCard.details})`);
+
+    socket.emit("discard pile top", { card: topCard });
+  });
+
+  socket.on("draw from discard", () => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.discardPile || room.discardPile.length === 0) return;
+
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+    if (!playerData || playerData.champion !== "Pedro Ramirez") {
+      console.log(`${socket.data.user} is not Pedro Ramirez`);
+      return;
+    }
+
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Pedro Ramirez ability rejected: not ${socket.data.user}'s turn`);
+      return;
+    }
+
+    const drawnCard = room.discardPile.pop();
+    console.log(`${socket.data.user} drew ${drawnCard.name} (${drawnCard.details}) from discard pile`);
+
+    socket.emit("draw card result", {
+      success: true,
+      card: drawnCard,
+      remainingCards: room.gameDeck.length,
+      fromDiscard: true
     });
   });
 

@@ -238,6 +238,7 @@ function generateGameData(players) {
  //   "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
    // "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
     "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
+    "Pedro Ramirez": { baseHP: 4, description: "He may draw his first card from the discard pile." },
     //"Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
     //"Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
  //   "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
@@ -667,6 +668,11 @@ function renderPlayerCards(gameData) {
       socket.emit("kit carlson ability");
       numberOfDrawnCards++;
       numberOfDrawnCards++;
+      return;
+    }
+
+    if (currentPlayer && currentPlayer.champion === "Pedro Ramirez" && numberOfDrawnCards === 0) {
+      socket.emit("check discard pile");
       return;
     }
 
@@ -1151,7 +1157,7 @@ socket.on("update turn", (playerUsername) => {
     const currentPlayer = players.find(p => p.username === username);
     if (currentPlayer && currentPlayer.attributes && currentPlayer.attributes.includes("Jail")) {
       socket.emit("jail turn start");
-    }
+    } 
   }
 });
 
@@ -2933,3 +2939,137 @@ jailStyle.textContent = `
 }
 `;
 document.head.appendChild(jailStyle);
+
+socket.on("discard pile top", (data) => {
+  if (data.card) {
+    showPedroRamirezDialog(data.card);
+  } else {
+    console.log("No cards in discard pile for Pedro Ramirez ability");
+    socket.emit("draw card", numberOfDrawnCards);
+    numberOfDrawnCards++;
+    
+    socket.emit("draw card", numberOfDrawnCards);
+    numberOfDrawnCards++;
+  }
+});
+
+function showPedroRamirezDialog(topCard) {
+  const pedroDialog = document.createElement("div");
+  pedroDialog.className = "pedro-dialog";
+  
+  const dialogHTML = `
+    <div class="pedro-dialog-content">
+      <h3>Pedro Ramirez Ability</h3>
+      <p>You can draw your first card from the discard pile instead of the deck.</p>
+      
+      <div class="discard-card">
+        <p>Top card in discard pile:</p>
+        <div class="card-display">
+          <div class="card-name">${topCard.name}</div>
+          <div class="card-details">${topCard.details}</div>
+        </div>
+      </div>
+      
+      <div class="pedro-buttons">
+        <button id="drawFromDiscard">Draw from Discard</button>
+        <button id="drawFromDeck">Draw from Deck</button>
+      </div>
+    </div>
+  `;
+  
+  pedroDialog.innerHTML = dialogHTML;
+  document.body.appendChild(pedroDialog);
+  
+  const cardDisplay = pedroDialog.querySelector('.card-display');
+  cardDisplay.style.padding = '10px';
+  cardDisplay.style.margin = '10px auto';
+  cardDisplay.style.width = '120px';
+  cardDisplay.style.height = '150px';
+  cardDisplay.style.backgroundColor = '#f8f8f8';
+  cardDisplay.style.border = '1px solid #ddd';
+  cardDisplay.style.borderRadius = '8px';
+  cardDisplay.style.display = 'flex';
+  cardDisplay.style.flexDirection = 'column';
+  cardDisplay.style.justifyContent = 'center';
+  cardDisplay.style.alignItems = 'center';
+  cardDisplay.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+  
+  document.getElementById("drawFromDiscard").addEventListener("click", () => {
+    socket.emit("draw from discard");
+    numberOfDrawnCards++;
+    y
+    socket.emit("draw card", numberOfDrawnCards);
+    numberOfDrawnCards++;
+    
+    document.body.removeChild(pedroDialog);
+  });
+  
+  document.getElementById("drawFromDeck").addEventListener("click", () => {
+    socket.emit("draw card", numberOfDrawnCards);
+    numberOfDrawnCards++;
+    
+    socket.emit("draw card", numberOfDrawnCards);
+    numberOfDrawnCards++;
+    
+    document.body.removeChild(pedroDialog);
+  });
+}
+
+const pedroStyle = document.createElement('style');
+pedroStyle.textContent = `
+.pedro-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.pedro-dialog-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.discard-card {
+  margin: 15px 0;
+}
+
+.pedro-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+.pedro-buttons button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  background-color: #795548;
+  color: white;
+  transition: background-color 0.2s;
+}
+
+.pedro-buttons button:hover {
+  background-color: #5d4037;
+}
+
+#drawFromDiscard {
+  background-color: #ff9800;
+}
+
+#drawFromDiscard:hover {
+  background-color: #f57c00;
+}
+`;
+document.head.appendChild(pedroStyle);
