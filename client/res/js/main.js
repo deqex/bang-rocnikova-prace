@@ -1004,6 +1004,22 @@ function renderPlayerCards(gameData) {
           return;
         }
 
+        if (card.name === "Jail") {
+          targetingMode = true;
+          selectedCard = card;
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+
+          const targetInstruction = document.createElement("div");
+          targetInstruction.id = "targetInstruction";
+          targetInstruction.className = "target-instruction";
+          targetInstruction.innerHTML = `<p>Select a player to put in Jail (cannot target Sheriff)</p>`;
+          document.body.appendChild(targetInstruction);
+
+          enableJailTargeting();
+          return;
+        }
+
         playerHand.splice(index, 1);
 
         const currentPlayer = players.find(p => p.username === username);
@@ -1109,6 +1125,11 @@ socket.on("update turn", (playerUsername) => {
 
   if (currentTurn === username) {
     console.log("It's your turn!");
+    
+    const currentPlayer = players.find(p => p.username === username);
+    if (currentPlayer && currentPlayer.attributes && currentPlayer.attributes.includes("Jail")) {
+      socket.emit("jail turn start");
+    }
   }
 });
 
@@ -2548,4 +2569,207 @@ socket.on("el gringo draw", (data) => {
   }
 });
 
-document.head.appendChild(elGringoStyle);
+function enableJailTargeting() {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    if (card.classList.contains('current-player') || card.classList.contains('sheriff')) return;
+    card.classList.add('targetable');
+    card.addEventListener('click', handleJailTargeting);
+  });
+}
+
+function disableJailTargeting() {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    card.classList.remove('targetable');
+    card.removeEventListener('click', handleJailTargeting);
+  });
+  const instruction = document.getElementById('targetInstruction');
+  if (instruction) document.body.removeChild(instruction);
+
+  targetingMode = false;
+  selectedCard = null;
+}
+
+function handleJailTargeting(event) {
+  const targetCard = event.currentTarget;
+  
+  if (targetCard.classList.contains('sheriff')) {
+    alert("You cannot put the Sheriff in Jail!");
+    return;
+  }
+
+  const nameElement = targetCard.querySelector('.player-name');
+  const targetUsername = nameElement.textContent.replace(' (Turn)', '');
+
+  const targetPlayer = players.find(p => p.username === targetUsername);
+  const currentPlayer = players.find(p => p.username === username);
+
+  if (!targetPlayer || !currentPlayer) {
+    console.log("Could not find player data");
+    disableJailTargeting();
+    return;
+  }
+
+  const cardIndex = playerHand.findIndex(card => card.name === selectedCard.name && card.details === selectedCard.details);
+
+  if (cardIndex !== -1) {
+    playerHand.splice(cardIndex, 1);
+    currentPlayer.cardCount = playerHand.length;
+    socket.emit("update card count", username, playerHand.length);
+  }
+
+  socket.emit("play jail", {
+    target: targetUsername,
+    card: selectedCard
+  });
+
+  disableJailTargeting();
+  renderPlayerCards(players);
+}
+
+socket.on("check jail", () => {
+  console.log("You're in Jail! Draw a card to try to escape");
+  showJailDialog();
+});
+
+function showJailDialog() {
+  const jailDialog = document.createElement("div");
+  jailDialog.className = "jail-dialog";
+  
+  const dialogHTML = `
+    <div class="jail-dialog-content">
+      <h3>You're in Jail!</h3>
+      <p>Draw a card. If it's Hearts ♥, you escape and can play your turn.</p>
+      <p>Otherwise, your turn is skipped.</p>
+      <div class="jail-buttons">
+        <button id="drawJailCard">Draw Card</button>
+      </div>
+    </div>
+  `;
+  
+  jailDialog.innerHTML = dialogHTML;
+  document.body.appendChild(jailDialog);
+  
+  document.getElementById("drawJailCard").addEventListener("click", () => {
+    socket.emit("check jail escape");
+    
+    document.getElementById("drawJailCard").disabled = true;
+    document.getElementById("drawJailCard").textContent = "Drawing...";
+  });
+}
+
+socket.on("jail result", (data) => {
+  const jailDialog = document.querySelector('.jail-dialog');
+  if (!jailDialog) return;
+  
+  const content = jailDialog.querySelector('.jail-dialog-content');
+  const drawnCardHTML = `
+    <div class="drawn-jail-card">
+      <p>You drew: <strong>${data.card.name} (${data.card.details})</strong></p>
+    </div>
+  `;
+  
+  content.insertAdjacentHTML('beforeend', drawnCardHTML);
+  
+  const resultMessage = document.createElement('p');
+  resultMessage.className = 'jail-result';
+  
+  if (data.escaped) {
+    resultMessage.textContent = "It's Hearts! You escape from Jail and can continue your turn.";
+    resultMessage.style.color = '#4CAF50';
+  } else {
+    resultMessage.textContent = "Not Hearts. Your turn is skipped.";
+    resultMessage.style.color = '#F44336';
+  }
+  
+  content.appendChild(resultMessage);
+  
+  const buttonContainer = jailDialog.querySelector('.jail-buttons');
+  buttonContainer.innerHTML = '';
+  
+  const dismissButton = document.createElement('button');
+  dismissButton.textContent = 'OK';
+  dismissButton.className = 'dismiss-jail';
+  buttonContainer.appendChild(dismissButton);
+  
+  dismissButton.addEventListener('click', () => {
+    document.body.removeChild(jailDialog);
+  });
+  
+  if (data.escaped) {
+    setTimeout(() => {
+      if (jailDialog.parentNode) {
+        document.body.removeChild(jailDialog);
+      }
+    }, 3000);
+  }
+});
+
+// Add the Jail dialog style
+const jailStyle = document.createElement('style');
+jailStyle.textContent = `
+.jail-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.jail-dialog-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.jail-buttons {
+  margin-top: 20px;
+}
+
+.jail-buttons button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  background-color: #3f51b5;
+  color: white;
+}
+
+.jail-buttons button:hover {
+  background-color: #303f9f;
+}
+
+.jail-buttons button:disabled {
+  background-color: #9e9e9e;
+  cursor: not-allowed;
+}
+
+.drawn-jail-card {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+}
+
+.jail-result {
+  font-weight: bold;
+  margin-top: 15px;
+  font-size: 18px;
+}
+
+.dismiss-jail {
+  margin-top: 15px;
+  padding: 8px 20px;
+}
+`;
+document.head.appendChild(jailStyle);

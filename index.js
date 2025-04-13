@@ -885,6 +885,112 @@ io.on("connection", (socket) => {
       }
     });
   });
+
+  socket.on("play jail", (data) => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Jail play rejected: ${socket.data.user} tried to play Jail when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+
+    const targetPlayer = room.gameData.find(player => player.username === data.target);
+    if (!targetPlayer) return;
+
+    const isSheriff = targetPlayer.role === "Sheriff";
+    if (isSheriff) {
+      console.log(`${socket.data.user} attempted to put Sheriff ${data.target} in Jail (not allowed)`);
+      socket.emit("error", { message: "Cannot put the Sheriff in Jail" });
+      return;
+    }
+
+    if (!targetPlayer.attributes) {
+      targetPlayer.attributes = [];
+    }
+    targetPlayer.attributes.push("Jail");
+    
+    console.log(`${socket.data.user} put ${data.target} in Jail in room ${socket.data.room}`);
+    
+    io.to(socket.data.room).emit("update attributes", data.target, targetPlayer.attributes);
+  });
+
+  socket.on("jail turn start", () => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Jail check rejected: not ${socket.data.user}'s turn`);
+      return;
+    }
+
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+    if (!playerData || !playerData.attributes || !playerData.attributes.includes("Jail")) {
+      console.log(`${socket.data.user} is not in Jail`);
+      return;
+    }
+
+    console.log(`${socket.data.user} starting turn while in Jail in room ${socket.data.room}`);
+    
+    socket.emit("check jail");
+  });
+
+  socket.on("check jail escape", () => {
+    if (!socket.data.room) return;
+
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData || !room.gameDeck || room.gameDeck.length === 0) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Jail escape check rejected: not ${socket.data.user}'s turn`);
+      return;
+    }
+
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+    if (!playerData || !playerData.attributes || !playerData.attributes.includes("Jail")) {
+      console.log(`${socket.data.user} is not in Jail`);
+      return;
+    }
+
+    const drawnCard = room.gameDeck.pop();
+    console.log(`${socket.data.user} drew ${drawnCard.name} (${drawnCard.details}) for Jail check`);
+    
+    const isHearts = drawnCard.details.includes("♥");
+    
+    if (isHearts) {
+      console.log(`${socket.data.user} escaped from Jail with a hearts card!`);
+      playerData.attributes = playerData.attributes.filter(attr => attr !== "Jail");
+      io.to(socket.data.room).emit("update attributes", socket.data.user, playerData.attributes);
+      
+      socket.emit("jail result", {
+        escaped: true,
+        card: drawnCard
+      });
+    } else {
+      console.log(`${socket.data.user} failed to escape from Jail`);
+      
+      socket.emit("jail result", {
+        escaped: false,
+        card: drawnCard
+      });
+      
+      setTimeout(() => {
+        const currentPlayerIndex = room.gameData.findIndex(p => p.username === socket.data.user);
+        const nextPlayerIndex = (currentPlayerIndex + 1) % room.gameData.length;
+        const nextPlayer = room.gameData[nextPlayerIndex];
+        
+        playerData.attributes = playerData.attributes.filter(attr => attr !== "Jail");
+        io.to(socket.data.room).emit("update attributes", socket.data.user, playerData.attributes);
+        
+        room.currentTurn = nextPlayer.username;
+        io.to(socket.data.room).emit("update turn", nextPlayer.username);
+      }, 3000);
+    }
+  });
 });
 
 
