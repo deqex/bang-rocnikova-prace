@@ -681,6 +681,11 @@ function renderPlayerCards(gameData) {
       return;
     }
 
+    if (currentPlayer && currentPlayer.champion === "Suzy Laffayete") {
+      socket.emit("draw card", numberOfDrawnCards);
+      numberOfDrawnCards++;
+    }
+
     socket.emit("draw card", numberOfDrawnCards);
     numberOfDrawnCards++;
     

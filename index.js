@@ -412,6 +412,10 @@ io.on("connection", (socket) => {
       }
     }
 
+    if (socket.data.user.champion === "Suzy Laffayete") {
+      console.log("sigma")
+    }
+
     if (room.currentTurn !== socket.data.user) {
       console.log(`draw card rejected: ${socket.data.user} tried to draw when it's ${room.currentTurn}'s turn`);
       socket.emit("draw card result", { success: false, message: "not your turn" });
