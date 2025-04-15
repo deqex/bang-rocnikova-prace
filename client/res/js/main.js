@@ -237,13 +237,13 @@ function generateGameData(players) {
    // "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
  //   "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
    // "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
-    "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
-    "Pedro Ramirez": { baseHP: 4, description: "He may draw his first card from the discard pile." },
+  //  "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
+//    "Pedro Ramirez": { baseHP: 4, description: "He may draw his first card from the discard pile." },
     //"Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
     //"Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
  //   "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
    // "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
-   // "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
+    "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
     "Vulture Sam": { baseHP: 4, description: "Takes all cards of eliminated players" }
   };
 
@@ -676,15 +676,17 @@ function renderPlayerCards(gameData) {
       return;
     }
 
+    if (currentPlayer && currentPlayer.champion === "Suzy Laffayete" && playerHand.length === 0) {
+      socket.emit("suzy laffayete ability");
+      return;
+    }
+
     if (numberOfDrawnCards >= 2) {
       console.log("already drawn this turn");
       return;
     }
 
-    if (currentPlayer && currentPlayer.champion === "Suzy Laffayete") {
-      socket.emit("draw card", numberOfDrawnCards);
-      numberOfDrawnCards++;
-    }
+
 
     socket.emit("draw card", numberOfDrawnCards);
     numberOfDrawnCards++;
@@ -2255,9 +2257,12 @@ panicStyle.textContent = `
 `;
 document.head.appendChild(panicStyle);
 
+socket.on("suzy laffayete card", (data) => {
+  console.log(`received ${data.card} for ${data.for}`) //no point atp ale necham to
+})
 
 socket.on("kit carlson cards", (data) => {
-  console.log(`received ${data.cards} for ${data.for}`);
+  console.log(`received ${data.cards} for ${data.for}`); // no point atp ale necham to
   kitCarlsonFunction(data)
 });
 

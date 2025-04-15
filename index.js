@@ -398,6 +398,7 @@ io.on("connection", (socket) => {
   socket.on("draw card", (numberOfDrawnCards) => {
     if (!socket.data.room) return;
     const room = roomsInfo[socket.data.room];
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
 
     if (!room.gameDeck || room.gameDeck.length === 0) {
       if (room.discardPile.length > 0) {
@@ -412,8 +413,8 @@ io.on("connection", (socket) => {
       }
     }
 
-    if (socket.data.user.champion === "Suzy Laffayete") {
-      console.log("sigma")
+    if (playerData.champion === "Suzy Laffayete") {
+      console.log("yo")
     }
 
     if (room.currentTurn !== socket.data.user) {
@@ -919,6 +920,38 @@ io.on("connection", (socket) => {
       });
     }
   });
+
+  socket.on("suzy laffayete ability", () => {
+    if (!socket.data.room) return;
+    const room = roomsInfo[socket.data.room];
+    const playerData = room.gameData.find(player => player.username === socket.data.user);
+
+    if (!room.gameDeck || room.gameDeck.length === 0) {
+      if (room.discardPile.length > 0) {
+        console.log(`Deck empty, shuffling discard pile with ${room.discardPile.length} cards`);
+        room.gameDeck = shuffleArray([...room.discardPile]);
+        room.discardPile = [];
+        console.log(`New deck created with ${room.gameDeck.length} cards`);
+      } else {
+        console.log(`no cards left in deck for room ${socket.data.room}`);
+        socket.emit("draw card result", { success: false, message: "no cards left in deck" });
+      return;
+      }
+    }
+
+    if (!playerData.champion === "Suzy Laffayete") {
+      console.log(`${socket.data.user} tried using Suzy Laffayete ability when their champion is ${playerData.champion}!`)
+      return;
+    }
+
+    const drawnCard = room.gameDeck.pop();
+    console.log(`${socket.data.user} drew card ${drawnCard.name} (${drawnCard.details}) in room ${socket.data.room}`);
+
+    socket.emit("suzy laffayete card", {
+      card: drawnCard,
+      for: socket.data.user
+    });
+  })
 
   socket.on("kit carlson ability", () => {
     if (!socket.data.room) return;
