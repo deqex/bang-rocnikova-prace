@@ -40,24 +40,19 @@
 
 .kit-carlson-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, 120px);
+  justify-content: center;
+  justify-items: center;
   gap: 15px;
   margin: 20px 0;
   padding: 0 20px;
 }
 
 .kit-carlson-card {
-  background-color: #f8f8f8;
   border: 2px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
-  min-height: 100px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 }
 
 .kit-carlson-card:hover {
@@ -73,15 +68,11 @@
 }
 
 .kit-carlson-card .card-name {
-  font-weight: bold;
-  font-size: 18px;
-  margin-bottom: 8px;
-  color: #333;
+  /* Removed as content is now image/overlay */
 }
 
 .kit-carlson-card .card-details {
-  font-size: 14px;
-  color: #666;
+  /* Removed as content is now image/overlay */
 }
 
 .selected-count {
@@ -624,23 +615,14 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
   gap: 15px;
   margin-top: 20px;
 }
 
 .general-store-card {
-  width: 120px;
-  height: 180px;
-  background-color: #f8f8f8;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s;
-  padding: 10px;
   text-align: center;
 }
 
@@ -745,6 +727,7 @@
   padding: 10px;
   background-color: #f5f5f5;
   border-radius: 5px;
+  text-align: center;
 }
 
 .jail-result {
@@ -782,6 +765,8 @@
 
 .discard-card {
   margin: 15px 0;
+  display: flex;
+  justify-content: center;
 }
 
 .pedro-buttons {
@@ -811,19 +796,4 @@
 
 #drawFromDiscard:hover {
   background-color: #f57c00;
-}
-
-.pedro-card-display {
-  padding: 10px;
-  margin: 10px auto;
-  width: 120px;
-  height: 150px;
-  background-color: #f8f8f8;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }

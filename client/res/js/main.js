@@ -1998,11 +1998,12 @@ function kitCarlsonFunction(data) {
       <p class="instruction">Select 2 cards to keep. The remaining card will be placed back on top of the deck.</p>
       <div class="kit-carlson-cards">`;
   
-  data.cards.forEach(card => { //pak fixni at to actually vypada jak karta
+  data.cards.forEach(card => {
+    const imagePath = `./res/img/${card.name}.png`; 
     dialogHTML += `
-      <div class="kit-carlson-card" data-name="${card.name}" data-details="${card.details}"> 
-        <div class="card-name">${card.name}</div>
-        <div class="card-details">${card.details}</div>
+      <div class="kit-carlson-card card-item" data-name="${card.name}" data-details="${card.details}">
+        <img src="${imagePath}" alt="${card.name}" style="width: 100%; height: 100%; object-fit: contain;">
+        <div class="card-details-overlay">${card.details}</div>
       </div>`;
   });
   
@@ -2098,11 +2099,12 @@ function showGeneralStoreDialog(cards, playedBy, currentSelector) {
   
   cards.forEach(card => {
     const disabledClass = currentSelector !== username ? ' disabled' : '';
+    const imagePath = `./res/img/${card.name}.png`;
     
     dialogHTML += `
-      <div class="general-store-card${disabledClass}" data-name="${card.name}" data-details="${card.details}">
-        <div class="card-name">${card.name}</div>
-        <div class="card-details">${card.details}</div>
+      <div class="general-store-card card-item${disabledClass}" data-name="${card.name}" data-details="${card.details}">
+        <img src="${imagePath}" alt="${card.name}" style="width: 100%; height: 100%; object-fit: contain;">
+        <div class="card-details-overlay">${card.details}</div>
       </div>`;
   });
   
@@ -2453,9 +2455,14 @@ socket.on("jail result", (data) => {
   if (!jailDialog) return;
   
   const content = jailDialog.querySelector('.jail-dialog-content');
+  const imagePath = `./res/img/${data.card.name}.png`;
   const drawnCardHTML = `
     <div class="drawn-jail-card">
-      <p>You drew: <strong>${data.card.name} (${data.card.details})</strong></p>
+      <p>You drew:</p>
+      <div class="card-item" style="margin: 10px auto;"> <!-- Added inline margin for centering -->
+          <img src="${imagePath}" alt="${data.card.name}" style="width: 100%; height: 100%; object-fit: contain;">
+          <div class="card-details-overlay">${data.card.details}</div>
+      </div>
     </div>
   `;
   
@@ -2519,9 +2526,9 @@ function showPedroRamirezDialog(topCard) {
       
       <div class="discard-card">
         <p>Top card in discard pile:</p>
-        <div class="card-display">
-          <div class="card-name">${topCard.name}</div>
-          <div class="card-details">${topCard.details}</div>
+        <div class="card-item"> 
+          <img src="./res/img/${topCard.name}.png" alt="${topCard.name}" style="width: 100%; height: 100%; object-fit: contain;">
+          <div class="card-details-overlay">${topCard.details}</div>
         </div>
       </div>
       
@@ -2535,8 +2542,7 @@ function showPedroRamirezDialog(topCard) {
   pedroDialog.innerHTML = dialogHTML;
   document.body.appendChild(pedroDialog);
   
-  const cardDisplay = pedroDialog.querySelector('.card-display');
-  cardDisplay.classList.add('pedro-card-display');
+  // No need to style cardDisplay manually anymore
   
   document.getElementById("drawFromDiscard").addEventListener("click", () => {
     socket.emit("draw from discard");
