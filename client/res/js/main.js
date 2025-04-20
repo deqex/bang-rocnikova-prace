@@ -36,6 +36,7 @@ let targetingMode = false; // Flag to track if we're in targeting mode
 let selectedCard = null; // Track the selected card for targeting
 const listOfWeapons = ["Winchester", "Rev. Carabine", "Schofield", "Remington"];
 let numberOfDrawnCards = 0;
+let lastPlayedCard = null;
 
 enterUsername.onclick = () => {
   username = nameInput.value;
@@ -474,18 +475,33 @@ function renderPlayerCards(gameData) {
   gameArea.style.overflow = "hidden";
   gameArea.style.boxSizing = "border-box";
 
-  // Create the central table
   const table = document.createElement("div");
   table.className = "game-table";
-  table.innerHTML = `
-    <div class="table-content">
-      <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
-        <img src="./res/img/01_barile.png" style="max-height: 60%; max-width: 45%;">
-        <img src="./res/img/01_barile.png" style="max-height: 60%; max-width: 45%;">
+  
+  if (lastPlayedCard) {
+    table.innerHTML = `
+      <div class="table-content">
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+          <div class="card-item" style="width: 100%; height: 100%; max-width: 120px; margin: 0 auto;">
+            <img src="./res/img/${lastPlayedCard.name}.png" 
+                alt="${lastPlayedCard.name}" 
+                title="${lastPlayedCard.name}" 
+                style="width: 100%; height: 100%; object-fit: contain;">
+            <div class="card-details-overlay">${lastPlayedCard.details}</div>
+          </div>
+        </div>
       </div>
-      <p>${gameData.length} Players</p>
-    </div>
-  `;
+    `;
+  } else {
+    table.innerHTML = `
+      <div class="table-content">
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+          <p style="color: white;">No cards played yet</p>
+        </div>
+      </div>
+    `;
+  }
+  
   gameArea.appendChild(table);
 
   function updatePositions() {
@@ -2542,7 +2558,6 @@ function showPedroRamirezDialog(topCard) {
   pedroDialog.innerHTML = dialogHTML;
   document.body.appendChild(pedroDialog);
   
-  // No need to style cardDisplay manually anymore
   
   document.getElementById("drawFromDiscard").addEventListener("click", () => {
     socket.emit("draw from discard");
@@ -2563,3 +2578,12 @@ function showPedroRamirezDialog(topCard) {
     document.body.removeChild(pedroDialog);
   });
 }
+
+socket.on("discard pile update", (data) => {
+  if (data.lastCard) {
+    lastPlayedCard = data.lastCard;
+    if (document.querySelector('.game-table')) {
+      renderPlayerCards(players);
+    }
+  }
+});

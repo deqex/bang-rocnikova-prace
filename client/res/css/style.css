@@ -118,17 +118,17 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background-color: #8B4513;
-  border: min(8px, 4%);
-  border-style: solid;
-  border-color: #654321;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 10px;
   box-shadow: 0 0 20px rgba(0,0,0,0.3);
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  width: 130px ;
+  height: 200px ;
+  padding: 5px;
 }
 
 .table-content {
@@ -270,8 +270,8 @@
 
 @media (orientation: portrait) {
   .game-table {
-    width: 25vw !important;
-    height: 25vw !important;
+    width: 130px !important;
+    height: 200px !important;
   }
 }
 

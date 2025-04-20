@@ -63,6 +63,12 @@ io.on("connection", (socket) => {
     }
     room.discardPile.push(card);
     console.log(`Card ${card.name} added to discard pile. Total cards: ${room.discardPile.length}`);
+    
+    if (room.roomNum) {
+      io.to(room.roomNum).emit("discard pile update", {
+        lastCard: card
+      });
+    }
   }
 
   socket.on("save username", (data) => {
