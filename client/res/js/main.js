@@ -2546,9 +2546,8 @@ function showPedroRamirezDialog(topCard) {
   
   document.getElementById("drawFromDiscard").addEventListener("click", () => {
     socket.emit("draw from discard");
-    numberOfDrawnCards++;
-    y
-    socket.emit("draw card", numberOfDrawnCards);
+    numberOfDrawnCards++; 
+    socket.emit("draw card", numberOfDrawnCards); 
     numberOfDrawnCards++;
     
     document.body.removeChild(pedroDialog);
