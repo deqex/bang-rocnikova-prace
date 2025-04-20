@@ -230,15 +230,15 @@ function calculateDistance(playerA, playerB, totalPlayers) {
 
 function generateGameData(players) {
   const championData = { // generovano pomoci ai 
-    "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
+ //   "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
    // "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
-  //  "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
+ //   "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
     "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
    // "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
  //   "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
    // "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
   //  "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
-//    "Pedro Ramirez": { baseHP: 4, description: "He may draw his first card from the discard pile." },
+    "Pedro Ramirez": { baseHP: 4, description: "He may draw his first card from the discard pile." },
     //"Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
     //"Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
  //   "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
@@ -729,10 +729,21 @@ function renderPlayerCards(gameData) {
     playerHand.forEach((card, index) => {
       const cardElement = document.createElement("div");
       cardElement.className = "card-item";
+      
+      const imagePath = `./res/img/${card.name}.png`; 
+      
       cardElement.innerHTML = `
-        <div class="card-name">${card.name}</div>
-        <div class="card-details">${card.details}</div>
-      `;
+        <img src="${imagePath}" 
+             alt="${card.name}" 
+             title="${card.name} (${card.details})" 
+             style="width: 100%; height: 100%; object-fit: contain;" 
+             >
+      `;// pak odeber title mozna
+
+      const detailsOverlay = document.createElement("div");
+      detailsOverlay.className = "card-details-overlay";
+      detailsOverlay.textContent = card.details; 
+      cardElement.appendChild(detailsOverlay);
 
       cardElement.addEventListener("click", () => {
         console.log(`Selected card: ${card.name} (${card.details})`);
@@ -945,7 +956,7 @@ function renderPlayerCards(gameData) {
             socket.emit("draw card");
             socket.emit("draw card");
             socket.emit("draw card");
-            
+
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
             console.log("Used Wells Fargo: Draw 3 cards");
@@ -963,7 +974,7 @@ function renderPlayerCards(gameData) {
             discardCard(card); 
             socket.emit("draw card");
             socket.emit("draw card");
-            
+
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
             console.log("Used Stagecoach: Draw 2 cards");
@@ -994,7 +1005,7 @@ function renderPlayerCards(gameData) {
         if (card.name === "Gatling") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
-            playerHand.splice(index, 1);
+        playerHand.splice(index, 1);
             currentPlayer.cardCount = playerHand.length;
             socket.emit("update card count", username, playerHand.length);
             socket.emit("play gatling", {
@@ -1009,11 +1020,11 @@ function renderPlayerCards(gameData) {
         }
 
         if (card.name === "General Store") {
-          const currentPlayer = players.find(p => p.username === username);
-          if (currentPlayer) {
+        const currentPlayer = players.find(p => p.username === username);
+        if (currentPlayer) {
             playerHand.splice(index, 1);
-            currentPlayer.cardCount = playerHand.length;
-            socket.emit("update card count", username, playerHand.length);
+          currentPlayer.cardCount = playerHand.length;
+          socket.emit("update card count", username, playerHand.length);
             socket.emit("play general store", { card: card });
             console.log("Played General Store: Drawing cards for everyone to choose in turns");
           }
@@ -1558,195 +1569,15 @@ socket.on("gatling attack", (data) => {
   }
 });
 
-const style = document.createElement('style');
-style.textContent = `
-.player-card.active-turn {
-  box-shadow: 0 0 15px #ffcc00;
-  border: 2px solid #ffcc00;
-}
+socket.on("get cards", (cards) => {
+  gameDeck = shuffleArray([...cards]);
+  console.log("Received deck with", gameDeck.length, "cards");
 
-.player-card.targetable {
-  cursor: pointer;
-  box-shadow: 0 0 15px #ff3300;
-  transition: transform 0.2s ease;
-}
-
-.player-card.targetable:hover {
-  transform: scale(1.1);
-}
-
-.target-instruction {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 5px;
-  z-index: 1000;
-  text-align: center;
-}
-
-.missed-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.missed-dialog-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 400px;
-  text-align: center;
-}
-
-.missed-buttons {
-  display: flex;
-  justify-content: space-around;
-  margin-top: 20px;
-}
-
-.missed-buttons button {
-  padding: 10px 15px;
-  cursor: pointer;
-  border: none;
-  border-radius: 5px;
-  font-weight: bold;
-}
-
-#useMissed {
-  background-color: #4CAF50;
-  color: white;
-}
-
-#takeDamage {
-  background-color: #f44336;
-  color: white;
-}
-
-.elimination-message {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 20px 30px;
-  border-radius: 10px;
-  text-align: center;
-  z-index: 2000;
-}
-
-.game-controls button:disabled {
-  background-color: #cccccc;
-  color: #666666;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.game-controls button {
-  transition: all 0.2s ease;
-}
-
-.game-controls button:not(:disabled):hover {
-  transform: scale(1.05);
-  background-color: #45a049;
-}
-`;
-document.head.appendChild(style);
-
-const cardMenuStyle = document.createElement('style');
-cardMenuStyle.textContent = `
-.card-selection-menu {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.85);
-  border-radius: 10px;
-  padding: 20px;
-  z-index: 1000;
-  width: 80%;
-  max-width: 800px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-}
-
-.card-menu-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #444;
-  padding-bottom: 10px;
-}
-
-.card-menu-header h2 {
-  color: white;
-  margin: 0;
-}
-
-#closeCardMenu {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.card-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 15px;
-  overflow-y: auto;
-  padding: 10px 0;
-}
-
-.card-item {
-  width: 120px;
-  height: 180px;
-  background-color: #f8f8f8;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s;
-  padding: 10px;
-  text-align: center;
-}
-
-.card-item:hover {
-  transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.card-name {
-  font-weight: bold;
-  font-size: 16px;
-  margin-bottom: 10px;
-}
-
-.card-details {
-  font-size: 14px;
-  color: #555;
-}
-`;
-document.head.appendChild(cardMenuStyle);
+  const currentPlayerData = players.find(p => p.username === username);
+  if (currentPlayerData) {
+    dealInitialCards(players);
+  }
+});
 
 socket.on("update attributes", (playerUsername, attributes) => {
   const playerToUpdate = players.find(p => p.username === playerUsername);
@@ -1919,53 +1750,6 @@ socket.on("cat balou result", (data) => {
     }
   }
 });
-
-const catBalouStyle = document.createElement('style');
-catBalouStyle.textContent = `
-.cat-balou-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.cat-balou-dialog-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 400px;
-  text-align: center;
-}
-
-.cat-balou-buttons, .cat-balou-attributes {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.cat-balou-buttons button, .attribute-button {
-  padding: 10px 15px;
-  cursor: pointer;
-  border: none;
-  border-radius: 5px;
-  font-weight: bold;
-  background-color: #9b4f96;
-  color: white;
-  transition: background-color 0.2s;
-}
-
-.cat-balou-buttons button:hover, .attribute-button:hover {
-  background-color: #7a3c78;
-}
-`;
-document.head.appendChild(catBalouStyle);
 
 function enablePanicTargeting() {
   const playerCards = document.querySelectorAll('.player-card');
@@ -2189,73 +1973,6 @@ socket.on("panic result", (data) => {
     renderPlayerCards(players);
   }
 });
-
-const panicStyle = document.createElement('style');
-panicStyle.textContent = `
-.panic-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.panic-dialog-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 400px;
-  text-align: center;
-}
-
-.panic-buttons, .panic-attributes {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.panic-buttons button, .attribute-button {
-  padding: 10px 15px;
-  cursor: pointer;
-  border: none;
-  border-radius: 5px;
-  font-weight: bold;
-  background-color: #ff5722;
-  color: white;
-  transition: background-color 0.2s;
-}
-
-.panic-buttons button:hover, .attribute-button:hover {
-  background-color: #e64a19;
-}
-
-.panic-notification {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 15px 25px;
-  border-radius: 8px;
-  z-index: 2000;
-  animation: fadeInOut 2s forwards;
-}
-
-@keyframes fadeInOut {
-  0% { opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; }
-}
-`;
-document.head.appendChild(panicStyle);
 
 socket.on("suzy laffayete card", (data) => {
   console.log(`received ${data.card} for ${data.for}`) //no point atp ale necham to
@@ -2580,110 +2297,6 @@ socket.on("general store complete", (data) => {
   }
 });
 
-// Update styles for the General Store
-const generalStoreStyle = document.createElement('style');
-generalStoreStyle.textContent = `
-.general-store-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.general-store-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 800px;
-  width: 90%;
-  text-align: center;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.general-store-cards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.general-store-card {
-  width: 120px;
-  height: 180px;
-  background-color: #f8f8f8;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s;
-  padding: 10px;
-  text-align: center;
-}
-
-.general-store-card:hover:not(.disabled) {
-  transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  background-color: #e8f5e9;
-}
-
-.general-store-card.disabled {
-  opacity: 0.5;
-  cursor: default;
-  transform: none;
-  box-shadow: none;
-}
-
-.selector-info {
-  margin-top: 10px;
-  font-size: 16px;
-  color: #333;
-}
-
-.your-turn {
-  margin-top: 10px;
-  color: #2196F3;
-  font-weight: bold;
-  font-size: 18px;
-}
-
-.waiting {
-  margin-top: 10px;
-  color: #FF9800;
-  font-style: italic;
-}
-
-.selections-container {
-  margin-top: 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.selection-info {
-  color: #ff5722;
-  font-style: italic;
-}
-
-.final-message {
-  margin-top: 15px;
-  color: #4CAF50;
-  font-weight: bold;
-  font-size: 18px;
-}
-`;
-document.head.appendChild(generalStoreStyle);
-
 socket.on("el gringo draw", (data) => {
   if (data.target === username && data.stolenCard) {
     playerHand.push(data.stolenCard);
@@ -2694,8 +2307,8 @@ socket.on("el gringo draw", (data) => {
       socket.emit("update card count", username, playerHand.length);
     }
     console.log(`El Gringo: You drew a ${data.stolenCard.name} from ${data.attacker}`);
-    renderPlayerCards(players);
-  }
+      renderPlayerCards(players);
+    }
   
   if (data.attacker === username) {
     if (playerHand.length > 0) {
@@ -2882,74 +2495,6 @@ socket.on("jail result", (data) => {
   }
 });
 
-// Add the Jail dialog style
-const jailStyle = document.createElement('style');
-jailStyle.textContent = `
-.jail-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.jail-dialog-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.jail-buttons {
-  margin-top: 20px;
-}
-
-.jail-buttons button {
-  padding: 10px 15px;
-  cursor: pointer;
-  border: none;
-  border-radius: 5px;
-  font-weight: bold;
-  background-color: #3f51b5;
-  color: white;
-}
-
-.jail-buttons button:hover {
-  background-color: #303f9f;
-}
-
-.jail-buttons button:disabled {
-  background-color: #9e9e9e;
-  cursor: not-allowed;
-}
-
-.drawn-jail-card {
-  margin-top: 15px;
-  padding: 10px;
-  background-color: #f5f5f5;
-  border-radius: 5px;
-}
-
-.jail-result {
-  font-weight: bold;
-  margin-top: 15px;
-  font-size: 18px;
-}
-
-.dismiss-jail {
-  margin-top: 15px;
-  padding: 8px 20px;
-}
-`;
-document.head.appendChild(jailStyle);
-
 socket.on("discard pile top", (data) => {
   if (data.card) {
     showPedroRamirezDialog(data.card);
@@ -2991,18 +2536,7 @@ function showPedroRamirezDialog(topCard) {
   document.body.appendChild(pedroDialog);
   
   const cardDisplay = pedroDialog.querySelector('.card-display');
-  cardDisplay.style.padding = '10px';
-  cardDisplay.style.margin = '10px auto';
-  cardDisplay.style.width = '120px';
-  cardDisplay.style.height = '150px';
-  cardDisplay.style.backgroundColor = '#f8f8f8';
-  cardDisplay.style.border = '1px solid #ddd';
-  cardDisplay.style.borderRadius = '8px';
-  cardDisplay.style.display = 'flex';
-  cardDisplay.style.flexDirection = 'column';
-  cardDisplay.style.justifyContent = 'center';
-  cardDisplay.style.alignItems = 'center';
-  cardDisplay.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+  cardDisplay.classList.add('pedro-card-display');
   
   document.getElementById("drawFromDiscard").addEventListener("click", () => {
     socket.emit("draw from discard");
@@ -3024,62 +2558,3 @@ function showPedroRamirezDialog(topCard) {
     document.body.removeChild(pedroDialog);
   });
 }
-
-const pedroStyle = document.createElement('style');
-pedroStyle.textContent = `
-.pedro-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.pedro-dialog-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.discard-card {
-  margin: 15px 0;
-}
-
-.pedro-buttons {
-  display: flex;
-  justify-content: space-around;
-  margin-top: 20px;
-}
-
-.pedro-buttons button {
-  padding: 10px 15px;
-  cursor: pointer;
-  border: none;
-  border-radius: 5px;
-  font-weight: bold;
-  background-color: #795548;
-  color: white;
-  transition: background-color 0.2s;
-}
-
-.pedro-buttons button:hover {
-  background-color: #5d4037;
-}
-
-#drawFromDiscard {
-  background-color: #ff9800;
-}
-
-#drawFromDiscard:hover {
-  background-color: #f57c00;
-}
-`;
-document.head.appendChild(pedroStyle);

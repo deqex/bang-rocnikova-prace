@@ -110,3 +110,720 @@
   background-color: #ccc;
   cursor: not-allowed;
 }
+
+#gameArea {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+.game-table {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-color: #8B4513;
+  border: min(8px, 4%);
+  border-style: solid;
+  border-color: #654321;
+  box-shadow: 0 0 20px rgba(0,0,0,0.3);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.table-content {
+  color: white;
+  width: 100%;
+}
+
+.table-content h2 {
+  margin: 0;
+  font-size: clamp(16px, 4vw, 24px);
+}
+
+.table-content p {
+  margin: 5px 0 0;
+  font-size: clamp(12px, 3vw, 16px);
+}
+
+.player-card {
+  position: absolute;
+  background-color: white;
+  border: 2px solid #333;
+  border-radius: 8px;
+  padding: min(10px, 3%);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  z-index: 2;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: transform 0.2s ease;
+}
+
+.player-card:hover {
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.player-card.current-player {
+  border: 3px solid #4CAF50;
+  background-color: #f1f8e9;
+}
+
+.player-card.sheriff {
+  border-top: 3px solid gold;
+}
+
+.player-name {
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-bottom: 0.3em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-role {
+  display: inline-block;
+  padding: 0.1em 0.5em;
+  margin-bottom: 0.5em;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.player-role.sheriff {
+  background-color: gold;
+  color: #333;
+}
+
+.player-stats {
+  margin-bottom: 0.5em;
+  font-size: 0.9em;
+}
+
+.player-stats div {
+  margin-bottom: 0.2em;
+}
+
+.player-ability {
+  font-size: 0.85em;
+  margin-bottom: 0.5em;
+  color: #555;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.player-attributes {
+  font-size: 0.85em;
+}
+
+.player-attributes ul {
+  margin: 0.2em 0 0 0;
+  padding-left: 1.5em;
+}
+
+.game-controls {
+  position: fixed;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2%;
+  z-index: 10;
+  width: 80%;
+  max-width: 600px;
+}
+
+.game-controls button {
+  flex: 1;
+  padding: clamp(8px, 2vh, 15px) clamp(12px, 2vw, 25px);
+  font-size: clamp(14px, 3vw, 18px);
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.game-controls button:hover {
+  background-color: #45a049;
+}
+
+@media (max-width: 600px), (max-height: 600px) {
+  .player-ability {
+    -webkit-line-clamp: 1;
+  }
+  
+  .player-attributes ul {
+    display: none;
+  }
+}
+
+@media (max-width: 400px), (max-height: 400px) {
+  .player-ability {
+    display: none;
+  }
+}
+
+@media (orientation: portrait) {
+  .game-table {
+    width: 25vw !important;
+    height: 25vw !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .game-controls {
+    bottom: 10px;
+  }
+  
+  .player-card {
+    padding: 5px;
+  }
+}
+
+#leaveRoom, #startGame, #createRoomButton {
+  display: none;
+}
+
+.availableRoom {
+  cursor: pointer;
+}
+
+.player-card.active-turn {
+  box-shadow: 0 0 15px #ffcc00;
+  border: 2px solid #ffcc00;
+}
+
+.player-card.targetable {
+  cursor: pointer;
+  box-shadow: 0 0 15px #ff3300;
+  transition: transform 0.2s ease;
+}
+
+.player-card.targetable:hover {
+  transform: scale(1.1);
+}
+
+.target-instruction {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 1000;
+  text-align: center;
+}
+
+.missed-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.missed-dialog-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.missed-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+.missed-buttons button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+#useMissed {
+  background-color: #4CAF50;
+  color: white;
+}
+
+#takeDamage {
+  background-color: #f44336;
+  color: white;
+}
+
+.elimination-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 20px 30px;
+  border-radius: 10px;
+  text-align: center;
+  z-index: 2000;
+}
+
+.game-controls button:disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.game-controls button {
+  transition: all 0.2s ease;
+}
+
+.game-controls button:not(:disabled):hover {
+  transform: scale(1.05);
+  background-color: #45a049;
+}
+
+.card-selection-menu {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.85);
+  border-radius: 10px;
+  padding: 20px;
+  z-index: 1000;
+  width: 80%;
+  max-width: 800px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.card-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 10px;
+}
+
+.card-menu-header h2 {
+  color: white;
+  margin: 0;
+}
+
+#closeCardMenu {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.card-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.card-item {
+  width: 120px; 
+  height: 180px; 
+  border-radius: 8px;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+  padding: 0; 
+  text-align: center;
+  overflow: hidden; 
+  position: relative; 
+}
+
+.card-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.card-details-overlay {
+  position: absolute;
+  bottom: 5px; 
+  left: 5px;   
+  width: 30px;
+  height: 30px; 
+  background-color: black;
+  color: white;
+  border-radius: 50%; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px; 
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5); 
+  line-height: 1; 
+}
+
+.cat-balou-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.cat-balou-dialog-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.cat-balou-buttons, .cat-balou-attributes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cat-balou-buttons button, .attribute-button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  background-color: #9b4f96;
+  color: white;
+  transition: background-color 0.2s;
+}
+
+.cat-balou-buttons button:hover, .attribute-button:hover {
+  background-color: #7a3c78;
+}
+
+.panic-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.panic-dialog-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.panic-buttons, .panic-attributes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.panic-buttons button, .attribute-button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  background-color: #ff5722;
+  color: white;
+  transition: background-color 0.2s;
+}
+
+.panic-buttons button:hover, .attribute-button:hover {
+  background-color: #e64a19;
+}
+
+.panic-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 8px;
+  z-index: 2000;
+  animation: fadeInOut 2s forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.general-store-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.general-store-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 800px;
+  width: 90%;
+  text-align: center;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.general-store-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.general-store-card {
+  width: 120px;
+  height: 180px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+  padding: 10px;
+  text-align: center;
+}
+
+.general-store-card:hover:not(.disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  background-color: #e8f5e9;
+}
+
+.general-store-card.disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.selector-info {
+  margin-top: 10px;
+  font-size: 16px;
+  color: #333;
+}
+
+.your-turn {
+  margin-top: 10px;
+  color: #2196F3;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.waiting {
+  margin-top: 10px;
+  color: #FF9800;
+  font-style: italic;
+}
+
+.selections-container {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.selection-info {
+  color: #ff5722;
+  font-style: italic;
+}
+
+.final-message {
+  margin-top: 15px;
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.jail-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.jail-dialog-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.jail-buttons {
+  margin-top: 20px;
+}
+
+.jail-buttons button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  background-color: #3f51b5;
+  color: white;
+}
+
+.jail-buttons button:hover {
+  background-color: #303f9f;
+}
+
+.jail-buttons button:disabled {
+  background-color: #9e9e9e;
+  cursor: not-allowed;
+}
+
+.drawn-jail-card {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+}
+
+.jail-result {
+  font-weight: bold;
+  margin-top: 15px;
+  font-size: 18px;
+}
+
+.dismiss-jail {
+  margin-top: 15px;
+  padding: 8px 20px;
+}
+
+.pedro-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.pedro-dialog-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.discard-card {
+  margin: 15px 0;
+}
+
+.pedro-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+.pedro-buttons button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  background-color: #795548;
+  color: white;
+  transition: background-color 0.2s;
+}
+
+.pedro-buttons button:hover {
+  background-color: #5d4037;
+}
+
+#drawFromDiscard {
+  background-color: #ff9800;
+}
+
+#drawFromDiscard:hover {
+  background-color: #f57c00;
+}
+
+.pedro-card-display {
+  padding: 10px;
+  margin: 10px auto;
+  width: 120px;
+  height: 150px;
+  background-color: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
