@@ -37,6 +37,7 @@ let selectedCard = null; // Track the selected card for targeting
 const listOfWeapons = ["Winchester", "Rev. Carabine", "Schofield", "Remington"];
 let numberOfDrawnCards = 0;
 let lastPlayedCard = null;
+let dynamiteCheckPending = false; 
 
 enterUsername.onclick = () => {
   username = nameInput.value;
@@ -251,6 +252,31 @@ function generateGameData(players) {
   const bangCards = [ // generovano pomoci ai abych nemusel opisovat s trochou opravy struktura tvorena mnou
     { name: "Barrel", details: "Q♠" },
     { name: "Barrel", details: "K♠" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
+    { name: "Dynamite", details: "2♥" },
     { name: "Dynamite", details: "2♥" },
     { name: "Jail", details: "J♠" },
     { name: "Jail", details: "4♥" },
@@ -679,6 +705,11 @@ function renderPlayerCards(gameData) {
       return;
     }
 
+    if (dynamiteCheckPending) {
+        console.log("Cannot draw card: Dynamite check pending.");
+        return;
+    }
+
     const currentPlayer = players.find(p => p.username === username);
     if (currentPlayer.champion === "Kit Carlson" && numberOfDrawnCards === 0) {
       socket.emit("kit carlson ability");
@@ -1081,6 +1112,21 @@ function renderPlayerCards(gameData) {
           return;
         }
 
+        if (card.name === "Dynamite") {
+            const currentPlayer = players.find(p => p.username === username);
+            if (currentPlayer) {
+                playerHand.splice(index, 1);
+                currentPlayer.cardCount = playerHand.length;
+                socket.emit("update card count", username, playerHand.length);
+                socket.emit("play dynamite", { card: card });
+                console.log("Placed Dynamite in front of you.");
+            }
+            document.body.removeChild(cardMenu);
+            cardSelectionOpen = false;
+            renderPlayerCards(players);
+            return;
+        }
+
         playerHand.splice(index, 1);
 
         const currentPlayer = players.find(p => p.username === username);
@@ -1189,9 +1235,15 @@ socket.on("update turn", (playerUsername) => {
     console.log("It's your turn!");
     
     const currentPlayer = players.find(p => p.username === username);
-    if (currentPlayer && currentPlayer.attributes && currentPlayer.attributes.includes("Jail")) {
-      socket.emit("jail turn start");
-    } 
+    
+    if (currentPlayer && currentPlayer.attributes && currentPlayer.attributes.includes("Dynamite")) {
+        console.log("Dynamite detected, waiting for server check.");
+        dynamiteCheckPending = true;
+    } else if (currentPlayer && currentPlayer.attributes && currentPlayer.attributes.includes("Jail")) { // pak vyres co kdyz bro ma oba
+        socket.emit("jail turn start");
+    } else {
+        dynamiteCheckPending = false; 
+    }
   }
 });
 
@@ -2586,4 +2638,131 @@ socket.on("discard pile update", (data) => {
       renderPlayerCards(players);
     }
   }
+});
+
+
+socket.on("dynamite turn start", (data) => {
+    if (data.player === username) {
+        console.log("It's your turn, but you must check Dynamite first!");
+        dynamiteCheckPending = true; 
+        showDynamiteCheckDialog();
+        const drawButton = document.getElementById("drawCard");
+        if (drawButton) drawButton.disabled = true; 
+    }
+});
+
+function showDynamiteCheckDialog() {
+    const dynamiteDialog = document.createElement("div");
+    dynamiteDialog.className = "dynamite-dialog"; 
+    
+    const dialogHTML = `
+      <div class="dynamite-dialog-content">
+        <h3>Dynamite Check!</h3>
+        <p>You must draw a card to check the Dynamite before your turn begins.</p>
+        <p>If you draw ♠2 through ♠9, it explodes!</p>
+        <div class="dynamite-buttons">
+          <button id="drawDynamiteCard">Draw for Dynamite</button>
+        </div>
+      </div>
+    `;
+    
+    dynamiteDialog.innerHTML = dialogHTML;
+    document.body.appendChild(dynamiteDialog);
+    
+    document.getElementById("drawDynamiteCard").addEventListener("click", () => {
+      socket.emit("check dynamite draw");
+      
+      document.getElementById("drawDynamiteCard").disabled = true;
+      document.getElementById("drawDynamiteCard").textContent = "Drawing...";
+    });
+}
+
+socket.on("dynamite explosion", (data) => {
+    dynamiteCheckPending = false; 
+    const dynamiteDialog = document.querySelector('.dynamite-dialog');
+    if (!dynamiteDialog) return;
+
+    const content = dynamiteDialog.querySelector('.dynamite-dialog-content');
+    const imagePath = `./res/img/${data.card.name}.png`;
+    const drawnCardHTML = `
+      <div class="drawn-dynamite-card">
+        <p>You drew:</p>
+        <div class="card-item" style="margin: 10px auto;">
+            <img src="${imagePath}" alt="${data.card.name}" style="width: 100%; height: 100%; object-fit: contain;">
+            <div class="card-details-overlay">${data.card.details}</div>
+        </div>
+      </div>
+    `;
+    content.insertAdjacentHTML('beforeend', drawnCardHTML);
+
+    const resultMessage = document.createElement('p');
+    resultMessage.className = 'dynamite-result';
+    resultMessage.textContent = `BOOM! Dynamite exploded! You lose 3 HP. Your HP is now ${data.currentHP}.`;
+    resultMessage.style.color = '#F44336'; 
+    content.appendChild(resultMessage);
+
+    const buttonContainer = dynamiteDialog.querySelector('.dynamite-buttons');
+    buttonContainer.innerHTML = ''; 
+
+    const dismissButton = document.createElement('button');
+    dismissButton.textContent = 'OK';
+    dismissButton.className = 'dismiss-dynamite';
+    buttonContainer.appendChild(dismissButton);
+
+    dismissButton.addEventListener("click", () => {
+        document.body.removeChild(dynamiteDialog);
+         
+        const drawButton = document.getElementById("drawCard");
+        if (drawButton && currentTurn === username) drawButton.disabled = false; 
+    });
+});
+
+socket.on("dynamite passed", (data) => {
+    dynamiteCheckPending = false; 
+    const dynamiteDialog = document.querySelector('.dynamite-dialog');
+
+    if (!dynamiteDialog && data.from !== username) {
+        console.log(`Dynamite was passed from ${data.from} to ${data.to}`);
+         const passNotif = document.createElement('div');
+         passNotif.className = 'dynamite-pass-notification';
+         passNotif.innerHTML = `<p>Dynamite passed from ${data.from} to ${data.to}!</p>`;
+         document.body.appendChild(passNotif);
+         setTimeout(() => { document.body.removeChild(passNotif); }, 3000);
+        return; 
+    }
+
+     if (!dynamiteDialog) return; 
+
+    const content = dynamiteDialog.querySelector('.dynamite-dialog-content');
+    const imagePath = `./res/img/${data.card.name}.png`;
+    const drawnCardHTML = `
+      <div class="drawn-dynamite-card">
+        <p>You drew:</p>
+        <div class="card-item" style="margin: 10px auto;">
+            <img src="${imagePath}" alt="${data.card.name}" style="width: 100%; height: 100%; object-fit: contain;">
+            <div class="card-details-overlay">${data.card.details}</div>
+        </div>
+      </div>
+    `;
+    content.insertAdjacentHTML('beforeend', drawnCardHTML);
+
+    const resultMessage = document.createElement('p');
+    resultMessage.className = 'dynamite-result';
+    resultMessage.textContent = `Phew! Dynamite didn't explode. It passes to ${data.to}.`;
+    resultMessage.style.color = '#4CAF50'; 
+    content.appendChild(resultMessage);
+
+    const buttonContainer = dynamiteDialog.querySelector('.dynamite-buttons');
+    buttonContainer.innerHTML = ''; 
+
+    const dismissButton = document.createElement('button');
+    dismissButton.textContent = 'OK';
+    dismissButton.className = 'dismiss-dynamite';
+    buttonContainer.appendChild(dismissButton);
+
+    dismissButton.addEventListener("click", () => {
+        document.body.removeChild(dynamiteDialog);
+        const drawButton = document.getElementById("drawCard");
+        if (drawButton && currentTurn === username) drawButton.disabled = false;
+    });
 });

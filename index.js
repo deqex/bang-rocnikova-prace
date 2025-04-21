@@ -51,6 +51,8 @@ const roomsInfo = [ //pak odeber, nech na testovani
   },
 ];
 
+const dynamiteState = {}; 
+
 io.on("connection", (socket) => {
   console.log(
     `User connected: ${socket.handshake.address}, ${socket.handshake.time}`
@@ -324,7 +326,11 @@ io.on("connection", (socket) => {
 
     roomsInfo[room].gameActive = true;
     roomsInfo[room].gameData = gameData;
-    roomsInfo[room].discardPile = [];  // Initialize empty discard pile
+    roomsInfo[room].discardPile = [];  
+    dynamiteState[room] = { 
+        pendingCheck: false,
+        checkedPlayer: null
+    }; 
 
     const sheriff = gameData.find(player => player.role === "Sheriff");
     roomsInfo[room].currentTurn = sheriff ? sheriff.username : null;
@@ -348,6 +354,16 @@ io.on("connection", (socket) => {
     console.log(`Turn updated in room ${socket.data.room}: ${playerUsername}'s turn`);
 
     io.to(socket.data.room).emit("update turn", playerUsername);
+    
+    const roomData = roomsInfo[socket.data.room];
+    const player = roomData.gameData.find(p => p.username === playerUsername);
+    if (player && player.attributes && player.attributes.includes("Dynamite")) {
+        dynamiteState[socket.data.room] = { pendingCheck: true, checkedPlayer: playerUsername };
+        console.log(`Dynamite check initiated for ${playerUsername} in room ${socket.data.room}`);
+        io.to(socket.data.room).emit("dynamite turn start", { player: playerUsername }); 
+    } else {
+         io.to(socket.data.room).emit("update turn", playerUsername);
+    }
   });
 
   socket.on("update card count", (playerUsername, cardCount) => {
@@ -405,6 +421,14 @@ io.on("connection", (socket) => {
     if (!socket.data.room) return;
     const room = roomsInfo[socket.data.room];
     const playerData = room.gameData.find(player => player.username === socket.data.user);
+
+    // AI START - Prevent drawing if Dynamite check is pending
+    if (dynamiteState[socket.data.room] && dynamiteState[socket.data.room].pendingCheck && dynamiteState[socket.data.room].checkedPlayer === socket.data.user) {
+        console.log(`Draw card rejected: Dynamite check pending for ${socket.data.user}`);
+        socket.emit("draw card result", { success: false, message: "Dynamite check pending" });
+        return;
+    }
+    // AI END - Prevent drawing if Dynamite check is pending
 
     if (!room.gameDeck || room.gameDeck.length === 0) {
       if (room.discardPile.length > 0) {
@@ -1223,6 +1247,154 @@ io.on("connection", (socket) => {
       }, 3000);
     }
   });
+
+  socket.on("play dynamite", (data) => {
+    if (!socket.data.room) return;
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+        console.log(`Dynamite play rejected: ${socket.data.user} tried to play when it's ${room.currentTurn}'s turn`);
+        return;
+    }
+
+    const playerData = room.gameData.find(p => p.username === socket.data.user);
+    if (!playerData) return;
+
+    if (!playerData.attributes) {
+        playerData.attributes = [];
+    }
+
+    if (!playerData.attributes.includes("Dynamite")) {
+        playerData.attributes.push("Dynamite");
+        console.log(`${socket.data.user} placed Dynamite in front of them in room ${socket.data.room}`);
+        addCardToDiscardPile(room, data.card); 
+        io.to(socket.data.room).emit("update attributes", socket.data.user, playerData.attributes);
+    } else {
+        console.log(`${socket.data.user} tried to play Dynamite but already has one.`);
+        addCardToDiscardPile(room, data.card); //testi jestli kdyz jsou dva dynamity, tak se jeden vrati do cyklu karet stejne nemas cas lmao
+    }
+  });
+
+  socket.on("check dynamite draw", () => {
+    if (!socket.data.room) return;
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData || !room.gameDeck) return;
+
+    if (!dynamiteState[socket.data.room] || !dynamiteState[socket.data.room].pendingCheck || dynamiteState[socket.data.room].checkedPlayer !== socket.data.user) {
+        console.log(`Dynamite check rejected: Invalid state or not ${socket.data.user}'s turn to check.`);
+        return;
+    }
+
+    const playerData = room.gameData.find(p => p.username === socket.data.user);
+    if (!playerData || !playerData.attributes || !playerData.attributes.includes("Dynamite")) {
+        console.log(`Dynamite check rejected: ${socket.data.user} does not have Dynamite.`);
+        dynamiteState[socket.data.room].pendingCheck = false; 
+        io.to(socket.data.room).emit("update turn", socket.data.user); 
+        return;
+    }
+
+     if (room.gameDeck.length === 0) {
+          if (room.discardPile.length > 0) {
+            console.log(`Deck empty for Dynamite check, shuffling discard pile with ${room.discardPile.length} cards`);
+            room.gameDeck = shuffleArray([...room.discardPile]);
+            room.discardPile = [];
+            console.log(`New deck created with ${room.gameDeck.length} cards`);
+          } else {
+            console.log(`No cards left in deck or discard for Dynamite check in room ${socket.data.room}`);
+          }
+     }
+    const drawnCard = room.gameDeck.pop();
+    addCardToDiscardPile(room, drawnCard); 
+
+    console.log(`${socket.data.user} drew ${drawnCard.name} (${drawnCard.details}) for Dynamite check`);
+
+    const symbol = drawnCard.details.slice(-1);
+    const rankNumber = drawnCard.details.slice(0, -1);
+    const rank = parseInt(rankNumber); 
+
+    let explodes = false;
+    if (symbol === '♠' && !isNaN(rank) && rank >= 2 && rank <= 9) {
+        explodes = true;
+    }
+
+    dynamiteState[socket.data.room].pendingCheck = false; 
+
+    if (explodes) {
+        console.log(`Dynamite exploded on ${socket.data.user}!`);
+        playerData.attributes = playerData.attributes.filter(attr => attr !== "Dynamite");
+        io.to(socket.data.room).emit("update attributes", socket.data.user, playerData.attributes);
+
+        playerData.hp -= 3;
+        console.log(`${socket.data.user} took 3 damage from Dynamite, HP now: ${playerData.hp}`);
+        
+        io.to(socket.data.room).emit("dynamite explosion", {
+            player: socket.data.user,
+            card: drawnCard,
+            currentHP: playerData.hp
+        });
+        
+        io.to(socket.data.room).emit("player damaged", {
+            player: socket.data.user,
+            attacker: "Dynamite", 
+            amount: 3,
+            currentHP: playerData.hp
+        });
+
+         if (playerData.hp <= 0) {
+            console.log(`${socket.data.user} was eliminated by Dynamite!`);
+            io.to(socket.data.room).emit("player eliminated", {
+                player: socket.data.user,
+                attacker: "Dynamite"
+            });
+            // pak udelej aby to dal dalsimu hracovi turn 
+         }
+        io.to(socket.data.room).emit("update turn", socket.data.user); 
+
+    } else {
+        console.log(`Dynamite did not explode. Passing to the next player.`);
+        passDynamite(room, playerData, drawnCard);
+    }
+  });
+
+  // zacatek ai 
+  function passDynamite(room, currentPlayer, drawnCard) {
+    currentPlayer.attributes = currentPlayer.attributes.filter(attr => attr !== "Dynamite");
+    io.to(room.roomNum).emit("update attributes", currentPlayer.username, currentPlayer.attributes);
+
+    const currentPlayerIndex = room.gameData.findIndex(p => p.username === currentPlayer.username);
+    let nextPlayerIndex = (currentPlayerIndex + 1) % room.gameData.length;
+    // Skip eliminated players if any (though Dynamite shouldn't target eliminated ones usually)
+    while (room.gameData[nextPlayerIndex].eliminated) {
+        nextPlayerIndex = (nextPlayerIndex + 1) % room.gameData.length;
+        if (nextPlayerIndex === currentPlayerIndex) { // Should not happen in a valid game state
+             console.error("Error finding next player for Dynamite pass.");
+             // Turn proceeds for the current player if no valid next player found
+             io.to(room.roomNum).emit("update turn", currentPlayer.username);
+             return;
+        }
+    }
+    const nextPlayer = room.gameData[nextPlayerIndex];
+
+    // Add Dynamite to the next player
+    if (!nextPlayer.attributes) {
+        nextPlayer.attributes = [];
+    }
+    nextPlayer.attributes.push("Dynamite");
+    io.to(room.roomNum).emit("update attributes", nextPlayer.username, nextPlayer.attributes);
+
+    console.log(`Dynamite passed from ${currentPlayer.username} to ${nextPlayer.username}`);
+    
+    io.to(room.roomNum).emit("dynamite passed", {
+        from: currentPlayer.username,
+        to: nextPlayer.username,
+        card: drawnCard
+    });
+    
+    // Current player's turn proceeds normally now
+    io.to(room.roomNum).emit("update turn", currentPlayer.username); 
+  }
+  // konec ai 
 });
 
 

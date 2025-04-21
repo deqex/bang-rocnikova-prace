@@ -797,3 +797,145 @@
 #drawFromDiscard:hover {
   background-color: #f57c00;
 }
+
+/* AI START - Dynamite Dialog Styles */
+/* Reuse overlay style from other dialogs */
+.dynamite-dialog, .missed-dialog, .cat-balou-dialog, .panic-dialog, .jail-dialog, .pedro-dialog, .kit-carlson-dialog, .general-store-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Reuse content box style */
+.dynamite-dialog-content, .missed-dialog-content, .cat-balou-dialog-content, .panic-dialog-content, .jail-dialog-content, .pedro-dialog-content, .kit-carlson-content, .general-store-content {
+  background-color: white;
+  padding: 25px; /* Slightly more padding */
+  border-radius: 10px;
+  max-width: 550px; /* Consistent max width */
+  width: 90%;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* AI START - Ensure buttons are at the bottom */
+.dynamite-dialog-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 300px; /* Ensure minimum height for button spacing */
+}
+/* AI END */
+
+.dynamite-dialog-content h3 {
+  color: #cc0000; /* Reddish for danger */
+  margin: 0 0 15px;
+  font-size: 24px;
+}
+
+.dynamite-dialog-content p {
+  color: #444;
+  margin: 10px 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Reuse button container style */
+.dynamite-buttons, .missed-buttons, .cat-balou-buttons, .panic-buttons, .jail-buttons, .pedro-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px; /* More gap */
+  margin-top: 25px; /* More margin */
+}
+
+/* AI START - Push buttons to bottom */
+.dynamite-buttons {
+    margin-top: auto; /* Pushes the button container to the bottom */
+    padding-top: 20px; /* Add some space above the buttons */
+}
+/* AI END */
+
+/* Base style for Dynamite buttons */
+.dynamite-buttons button {
+  padding: 12px 25px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  min-width: 150px; /* Ensure buttons have good width */
+}
+
+.dynamite-buttons button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.dynamite-buttons button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Specific style for the draw button */
+#drawDynamiteCard {
+  background-color: #e67e22; /* Orange */
+  color: white;
+}
+
+#drawDynamiteCard:hover:not(:disabled) {
+  background-color: #d35400; /* Darker Orange */
+}
+
+/* Specific style for dismiss button (like other dialog OK buttons) */
+.dismiss-dynamite {
+  background-color: #2ecc71; /* Green */
+  color: white;
+}
+
+.dismiss-dynamite:hover {
+  background-color: #27ae60; /* Darker Green */
+}
+
+/* Style for displaying the drawn card (like jail) */
+.drawn-dynamite-card {
+  text-align: center;
+  margin: 20px 0; /* More margin */
+}
+
+.drawn-dynamite-card p {
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: #555;
+}
+
+/* Style for the result message (like jail) */
+.dynamite-result {
+  margin-top: 20px; /* More margin */
+  font-weight: bold;
+  font-size: 18px; /* Larger font */
+}
+
+/* Dynamite Pass Notification Style (similar to panic-notification) */
+.dynamite-pass-notification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(39, 174, 96, 0.9); /* Greenish background */
+  color: white;
+  padding: 12px 25px;
+  border-radius: 5px;
+  z-index: 1001; /* Above dialogs if needed */
+  font-size: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  animation: fadeInOut 3s ease-in-out;
+}
+/* AI END - Dynamite Dialog Styles */
