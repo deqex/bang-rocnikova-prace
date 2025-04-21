@@ -232,7 +232,7 @@ function calculateDistance(playerA, playerB, totalPlayers) {
 
 function generateGameData(players) {
   const championData = { // generovano pomoci ai 
- //   "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
+    "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
    // "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
  //   "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
     "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
@@ -813,6 +813,7 @@ function renderPlayerCards(gameData) {
           document.body.appendChild(targetInstruction);
 
           enableTargeting();
+          numberOfDrawnCards = 0;
           return;
         }
 

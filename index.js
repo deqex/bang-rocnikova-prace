@@ -496,6 +496,17 @@ io.on("connection", (socket) => {
       target: data.target,
       card: data.card
     });
+
+    // zacatek ai
+    const currentPlayerIndex = room.gameData.findIndex(p => p.username === socket.data.user);
+    const nextPlayerIndex = (currentPlayerIndex + 1) % room.gameData.length;
+    const nextPlayer = room.gameData[nextPlayerIndex];
+    
+    room.currentTurn = nextPlayer.username;
+    console.log(`Turn ended after Bang!: ${socket.data.user} -> ${nextPlayer.username}`);
+    
+    io.to(socket.data.room).emit("update turn", nextPlayer.username);
+    // konec ai
   });
 
   socket.on("play indians", (data) => {
