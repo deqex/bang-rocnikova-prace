@@ -1372,7 +1372,15 @@ socket.on("bang attack", (data) => {
     const currentPlayer = players.find(p => p.username === username);
     const attackingPlayer = players.find(p => p.username === data.attacker);
     if (attackingPlayer.champion === "Slab the Killer") {
-      console.log("sigmic")
+      const missedCards = playerHand.filter(card => card.name === "Missed!");
+      if (missedCards.length >= 2) {
+        showMissedDialog(data.attacker, missedCards)
+//pak do toho dialogu proste dej ze na tebe strili slab the killer, pouzij tam tenhle kod, a for each missed card emit use missed
+      }
+
+      missedCards.splice(1, 2);
+      missedCards.forEach(mcards => playerHand.push(mcards));
+
     }
     
   if (missedCard || currentPlayer.champion === "Jourdonnais" || currentPlayer.attributes.includes("Barrel")) {
