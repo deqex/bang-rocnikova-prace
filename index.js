@@ -350,13 +350,39 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Check if the player is eliminated
+    const targetPlayer = room.gameData.find(p => p.username === playerUsername);
+    if (targetPlayer && targetPlayer.hp <= 0) {
+      console.log(`Skipping eliminated player ${playerUsername}'s turn`);
+      
+      // Find the next non-eliminated player
+      const currentPlayerIndex = room.gameData.findIndex(p => p.username === playerUsername);
+      let nextPlayerIndex = (currentPlayerIndex + 1) % room.gameData.length;
+      let nextPlayer = room.gameData[nextPlayerIndex];
+      
+      // Skip players with HP <= 0 (eliminated)
+      while (nextPlayer.hp <= 0 && nextPlayerIndex !== currentPlayerIndex) {
+        // Move to the next player
+        nextPlayerIndex = (nextPlayerIndex + 1) % room.gameData.length;
+        nextPlayer = room.gameData[nextPlayerIndex];
+        
+        // If we've checked all players and returned to the current one, break
+        if (nextPlayerIndex === currentPlayerIndex) {
+          console.log("No active players left to take a turn");
+          return;
+        }
+      }
+      
+      // Update to the next non-eliminated player
+      playerUsername = nextPlayer.username;
+    }
+
     room.currentTurn = playerUsername;
     console.log(`Turn updated in room ${socket.data.room}: ${playerUsername}'s turn`);
 
     io.to(socket.data.room).emit("update turn", playerUsername);
 
-    const roomData = roomsInfo[socket.data.room];
-    const player = roomData.gameData.find(p => p.username === playerUsername);
+    const player = room.gameData.find(p => p.username === playerUsername);
     if (player && player.attributes && player.attributes.includes("Dynamite")) {
       dynamiteState[socket.data.room] = { pendingCheck: true, checkedPlayer: playerUsername };
       console.log(`Dynamite check initiated for ${playerUsername} in room ${socket.data.room}`);
@@ -488,6 +514,14 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Check if target player is eliminated
+    const targetPlayer = room.gameData.find(player => player.username === data.target);
+    if (!targetPlayer || targetPlayer.hp <= 0) {
+      console.log(`Bang target rejected: ${data.target} is eliminated or doesn't exist`);
+      socket.emit("error", { message: "Cannot target eliminated players" });
+      return;
+    }
+
     addCardToDiscardPile(room, data.card);
     console.log(`${socket.data.user} played Bang! targeting ${data.target} in room ${socket.data.room}`);
 
@@ -498,22 +532,55 @@ io.on("connection", (socket) => {
     });
 
     const playerData = room.gameData.find(player => player.username === socket.data.user);
-    if (playerData.champion === "Willy the Kid" || playerData.attributes.includes("Volcanic")) { 
-      console.log(`${socket.data.user} has either Willy the Kid or Volcanic, can play unlimited bangs.`)
+    if (playerData.champion === "Willy the Kid" || (playerData.attributes && playerData.attributes.includes("Volcanic"))) { 
+      console.log(`${socket.data.user} has Volcanic/Willy, turn does not end automatically.`);
     } else {
-            // zacatek ai
-      const currentPlayerIndex = room.gameData.findIndex(p => p.username === socket.data.user);
-      const nextPlayerIndex = (currentPlayerIndex + 1) % room.gameData.length;
-      const nextPlayer = room.gameData[nextPlayerIndex];
+      // Automatically end turn after a short delay for non-Volcanic/Willy players
+      setTimeout(() => {
+        // Ensure the room and gameData still exist after the delay
+        const currentRoom = roomsInfo[socket.data.room];
+        if (!currentRoom || !currentRoom.gameData) {
+            console.log(`[Auto End Turn Delay] Room or gameData disappeared for room ${socket.data.room}`);
+            return;
+        }
+        
+        // Find the next non-eliminated player
+        const currentPlayerIndex = currentRoom.gameData.findIndex(p => p.username === socket.data.user);
+        // Check if player still exists (might have disconnected during delay)
+        if (currentPlayerIndex === -1) {
+            console.log(`[Auto End Turn Delay] Attacking player ${socket.data.user} not found.`);
+            return;
+        }
+        
+        let nextPlayerIndex = (currentPlayerIndex + 1) % currentRoom.gameData.length;
+        let nextPlayer = currentRoom.gameData[nextPlayerIndex];
+        let loopCheck = 0; // Prevent infinite loops if all others are eliminated
+        const maxLoops = currentRoom.gameData.length + 1;
 
-      room.currentTurn = nextPlayer.username;
-      console.log(`Turn ended after Bang!: ${socket.data.user} -> ${nextPlayer.username}`);
-
-      io.to(socket.data.room).emit("update turn", nextPlayer.username);
-      // konec ai
+        // Skip players with HP <= 0 (eliminated)
+        while (nextPlayer.hp <= 0 && loopCheck < maxLoops) {
+          nextPlayerIndex = (nextPlayerIndex + 1) % currentRoom.gameData.length;
+          nextPlayer = currentRoom.gameData[nextPlayerIndex];
+          loopCheck++;
+          
+          // If we've checked all players and only found eliminated ones (or the original player)
+          if (loopCheck >= maxLoops || nextPlayer.username === socket.data.user && nextPlayer.hp <= 0) {
+            console.log("[Auto End Turn Delay] No active players left to take a turn after Bang!");
+            // Potentially emit a game end event here or handle appropriately
+            return; 
+          }
+        }
+        
+        // Only update turn if a valid next player was found
+        if (nextPlayer.hp > 0) {
+            currentRoom.currentTurn = nextPlayer.username;
+            console.log(`[Auto End Turn Delay] Turn ended after Bang!: ${socket.data.user} -> ${nextPlayer.username}`);
+            io.to(socket.data.room).emit("update turn", nextPlayer.username);
+        } else {
+             console.log(`[Auto End Turn Delay] Could not find a valid next player for ${socket.data.user}.`);
+        }
+      }, 200); // 200ms delay - adjust if needed
     }
-
-
   });
 
   socket.on("play indians", (data) => {
@@ -612,7 +679,23 @@ io.on("connection", (socket) => {
 
 
     if (playerData.hp <= 0) {
-      console.log(`${socket.data.user} was eliminated by ${data.attacker}!`);
+      console.log(`[Elimination Check - Damage] Player ${socket.data.user} HP <= 0.`);
+      playerData.eliminated = true; // Mark as eliminated
+      console.log(`[Elimination Check - Damage] Marked ${socket.data.user} as eliminated.`);
+      
+      // Find this player's socket to request their cards
+      const playerSocket = [...io.sockets.sockets.values()].find(
+        s => s.data.user === socket.data.user && s.data.room === socket.data.room
+      );
+      
+      if (playerSocket) {
+        console.log(`[Elimination Check - Damage] Found socket for ${socket.data.user}, emitting 'discard all cards'.`);
+        playerSocket.emit("discard all cards");
+      } else {
+        console.log(`[Elimination Check - Damage] Could not find socket for ${socket.data.user} to discard cards.`);
+      }
+      
+      console.log(`[Elimination Check - Damage] Emitting 'player eliminated' for ${socket.data.user}.`);
       io.to(socket.data.room).emit("player eliminated", {
         player: socket.data.user,
         attacker: data.attacker
@@ -712,11 +795,18 @@ io.on("connection", (socket) => {
       return;
     }
 
-    addCardToDiscardPile(room, data.card);
-    console.log(`${socket.data.user} played Cat Balou targeting ${data.target} in room ${socket.data.room}`);
-
     const targetPlayer = room.gameData.find(player => player.username === data.target);
     if (!targetPlayer) return;
+    
+    // Check if target player is eliminated
+    if (targetPlayer.hp <= 0) {
+      console.log(`Cat Balou target rejected: ${data.target} is eliminated`);
+      socket.emit("error", { message: "Cannot target eliminated players" });
+      return;
+    }
+
+    addCardToDiscardPile(room, data.card);
+    console.log(`${socket.data.user} played Cat Balou targeting ${data.target} in room ${socket.data.room}`);
 
     if (data.action === "takeCard") {
       console.log(`${socket.data.user} played Cat Balou to take a card from ${data.target} in room ${socket.data.room}`);
@@ -756,11 +846,18 @@ io.on("connection", (socket) => {
       return;
     }
 
-    addCardToDiscardPile(room, data.card);
-    console.log(`${socket.data.user} played Panic! targeting ${data.target} in room ${socket.data.room}`);
-
     const targetPlayer = room.gameData.find(player => player.username === data.target);
     if (!targetPlayer) return;
+    
+    // Check if target player is eliminated
+    if (targetPlayer.hp <= 0) {
+      console.log(`Panic target rejected: ${data.target} is eliminated`);
+      socket.emit("error", { message: "Cannot target eliminated players" });
+      return;
+    }
+
+    addCardToDiscardPile(room, data.card);
+    console.log(`${socket.data.user} played Panic! targeting ${data.target} in room ${socket.data.room}`);
 
     if (data.action === "stealCard") {
       console.log(`${socket.data.user} played Panic! to steal a card from ${data.target} in room ${socket.data.room}`);
@@ -868,7 +965,11 @@ io.on("connection", (socket) => {
       // Start with the player who played the card
       for (let i = 0; i < playerCount; i++) {
         const playerIndex = (playingPlayerIndex + i) % playerCount;
-        selectionOrder.push(room.gameData[playerIndex].username);
+        const player = room.gameData[playerIndex];
+        // Skip eliminated players
+        if (player.hp > 0) {
+          selectionOrder.push(player.username);
+        }
       }
     }
 
@@ -1149,6 +1250,9 @@ io.on("connection", (socket) => {
     console.log(`${socket.data.user} played Saloon in room ${socket.data.room}. Healing all players by 1 HP.`);
 
     room.gameData.forEach(player => {
+      // Skip eliminated players
+      if (player.hp <= 0) return;
+      
       const newHp = Math.min(player.hp + 1, player.maxHP);
       const actualHealAmount = newHp - player.hp;
       player.hp = newHp;
@@ -1176,6 +1280,13 @@ io.on("connection", (socket) => {
 
     const targetPlayer = room.gameData.find(player => player.username === data.target);
     if (!targetPlayer) return;
+
+    // Check if target player is eliminated
+    if (targetPlayer.hp <= 0) {
+      console.log(`Jail target rejected: ${data.target} is eliminated`);
+      socket.emit("error", { message: "Cannot target eliminated players" });
+      return;
+    }
 
     const isSheriff = targetPlayer.role === "Sheriff";
     if (isSheriff) {
@@ -1257,8 +1368,20 @@ io.on("connection", (socket) => {
 
       setTimeout(() => {
         const currentPlayerIndex = room.gameData.findIndex(p => p.username === socket.data.user);
-        const nextPlayerIndex = (currentPlayerIndex + 1) % room.gameData.length;
-        const nextPlayer = room.gameData[nextPlayerIndex];
+        let nextPlayerIndex = (currentPlayerIndex + 1) % room.gameData.length;
+        
+        // Skip players with HP <= 0 (eliminated)
+        let nextPlayer = room.gameData[nextPlayerIndex];
+        while (nextPlayer.hp <= 0 && nextPlayerIndex !== currentPlayerIndex) {
+          nextPlayerIndex = (nextPlayerIndex + 1) % room.gameData.length;
+          nextPlayer = room.gameData[nextPlayerIndex];
+          
+          if (nextPlayerIndex === currentPlayerIndex) {
+            console.log("No non-eliminated players found after jail check");
+            nextPlayer = room.gameData[currentPlayerIndex]; // Stay with current player as fallback
+            break;
+          }
+        }
 
         playerData.attributes = playerData.attributes.filter(attr => attr !== "Jail");
         io.to(socket.data.room).emit("update attributes", socket.data.user, playerData.attributes);
@@ -1363,7 +1486,23 @@ io.on("connection", (socket) => {
       });
 
       if (playerData.hp <= 0) {
-        console.log(`${socket.data.user} was eliminated by Dynamite!`);
+        console.log(`[Elimination Check - Dynamite] Player ${socket.data.user} HP <= 0.`);
+        playerData.eliminated = true; // Mark as eliminated
+        console.log(`[Elimination Check - Dynamite] Marked ${socket.data.user} as eliminated.`);
+        
+        // Find this player's socket to request their cards
+        const playerSocket = [...io.sockets.sockets.values()].find(
+          s => s.data.user === socket.data.user && s.data.room === socket.data.room
+        );
+        
+        if (playerSocket) {
+          console.log(`[Elimination Check - Dynamite] Found socket for ${socket.data.user}, emitting 'discard all cards'.`);
+          playerSocket.emit("discard all cards");
+        } else {
+          console.log(`[Elimination Check - Dynamite] Could not find socket for ${socket.data.user} to discard cards.`);
+        }
+        
+        console.log(`[Elimination Check - Dynamite] Emitting 'player eliminated' for ${socket.data.user}.`);
         io.to(socket.data.room).emit("player eliminated", {
           player: socket.data.user,
           attacker: "Dynamite"

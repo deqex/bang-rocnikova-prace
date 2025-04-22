@@ -1162,13 +1162,26 @@ function renderPlayerCards(gameData) {
       return;
     }
 
-    // zacatek ai
+    // Find the next player who isn't eliminated
     const currentPlayerIndex = players.findIndex(p => p.username === username);
-    const nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
-    const nextPlayer = players[nextPlayerIndex];
+    let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    let nextPlayer = players[nextPlayerIndex];
+    
+    // Skip players with HP <= 0 (eliminated)
+    while (nextPlayer.hp <= 0 && nextPlayerIndex !== currentPlayerIndex) {
+      // Move to the next player
+      nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
+      nextPlayer = players[nextPlayerIndex];
+      
+      // If we've checked all players and returned to the current one, break
+      if (nextPlayerIndex === currentPlayerIndex) {
+        console.log("No active players left to take a turn");
+        return;
+      }
+    }
+    
     currentTurn = nextPlayer.username;
     socket.emit("update turn", currentTurn);
-    // konec ai
 
     renderPlayerCards(players);
     console.log(`Ended turn. It's now ${nextPlayer.username}'s turn.`);
@@ -1233,6 +1246,7 @@ socket.on("update turn", (playerUsername) => {
 
   if (currentTurn === username) {
     console.log("It's your turn!");
+    numberOfDrawnCards = 0;
     
     const currentPlayer = players.find(p => p.username === username);
     
@@ -1281,7 +1295,9 @@ socket.on("draw card result", (data) => {
 function enableTargeting() {
   const playerCards = document.querySelectorAll('.player-card');
   playerCards.forEach(card => {
-    if (card.classList.contains('current-player')) return;
+    // Skip targeting self or eliminated players
+    if (card.classList.contains('current-player') || card.classList.contains('eliminated')) return;
+    
     card.classList.add('targetable');
     card.addEventListener('click', handleCardTargeting);
   });
@@ -1370,23 +1386,25 @@ function handleCardTargeting(event) {
 socket.on("bang attack", (data) => {
   if (data.target !== username) return;
 
+  // Skip if player is eliminated
+  const currentPlayer = players.find(p => p.username === username);
+  if (currentPlayer && currentPlayer.hp <= 0) return;
+
   console.log(`${data.attacker} attacked you with Bang!`);
   const missedCard = playerHand.find(card => card.name === "Missed!");
 
-    const currentPlayer = players.find(p => p.username === username);
-    const attackingPlayer = players.find(p => p.username === data.attacker);
-    if (attackingPlayer.champion === "Slab the Killer") {
-      const missedCards = playerHand.filter(card => card.name === "Missed!");
-      if (missedCards.length >= 2) {
-        showMissedDialog(data.attacker, missedCards)
-//pak do toho dialogu proste dej ze na tebe strili slab the killer, pouzij tam tenhle kod, a for each missed card emit use missed
-      }
-
-      missedCards.splice(1, 2);
-      missedCards.forEach(mcards => playerHand.push(mcards));
-
+  const attackingPlayer = players.find(p => p.username === data.attacker);
+  if (attackingPlayer && attackingPlayer.champion === "Slab the Killer") {
+    const missedCards = playerHand.filter(card => card.name === "Missed!");
+    if (missedCards.length >= 2) {
+      showMissedDialog(data.attacker, missedCards);
+      //pak do toho dialogu proste dej ze na tebe strili slab the killer, pouzij tam tenhle kod, a for each missed card emit use missed
     }
-    
+
+    missedCards.splice(1, 2);
+    missedCards.forEach(mcards => playerHand.push(mcards));
+  }
+  
   if (missedCard || currentPlayer.champion === "Jourdonnais" || currentPlayer.attributes.includes("Barrel")) {
     showMissedDialog(data.attacker, missedCard);
   } else {
@@ -1398,8 +1416,15 @@ socket.on("bang attack", (data) => {
 });
 
 function showMissedDialog(attacker, missedCard) {
+  // First, check if another dialog is already open and remove it
+  const existingDialog = document.querySelector('.missed-dialog');
+  if (existingDialog) {
+    document.body.removeChild(existingDialog);
+  }
+
   const missedDialog = document.createElement("div");
   missedDialog.className = "missed-dialog";
+  missedDialog.id = `missed-dialog-${Date.now()}`; // Add unique ID to prevent conflicts
 
   const currentPlayer = players.find(p => p.username === username);
 
@@ -1409,21 +1434,21 @@ function showMissedDialog(attacker, missedCard) {
       <h3>${attacker} attacked you with Bang!</h3>
       <p>You have a Missed! card. Do you want to use it?</p>
       <div class="missed-buttons">
-      <button id="takeDamage">No, take damage</button>`;
+      <button id="takeDamage-${missedDialog.id}">No, take damage</button>`;
   
   if (missedCard) {
     dialogHTML +=`
-          <button id="useMissed">Yes, use Missed!</button>`;
+          <button id="useMissed-${missedDialog.id}">Yes, use Missed!</button>`;
   }
         
-  if (currentPlayer.attributes.includes("Barrel")) {
+  if (currentPlayer.attributes && currentPlayer.attributes.includes("Barrel")) {
     dialogHTML += `
-        <button id="useBarrel">Use Barrel</button>`;
+        <button id="useBarrel-${missedDialog.id}">Use Barrel</button>`;
   }
 
   if (currentPlayer.champion === "Jourdonnais") {  
     dialogHTML += `
-        <button id="usePassive">Use passive</button>`;
+        <button id="usePassive-${missedDialog.id}">Use passive</button>`;
   }
   dialogHTML += `
       </div>
@@ -1433,81 +1458,118 @@ function showMissedDialog(attacker, missedCard) {
   missedDialog.innerHTML = dialogHTML;
   document.body.appendChild(missedDialog);
 
-  if (missedCard) {
-      document.getElementById("useMissed").addEventListener("click", () => {
-    const cardIndex = playerHand.findIndex(card => card.name === missedCard.name && card.details === missedCard.details);
-    if (cardIndex !== -1) {
-      playerHand.splice(cardIndex, 1);
-      discardCard(missedCard);
-      const currentPlayer = players.find(p => p.username === username);
-      if (currentPlayer) {
-        currentPlayer.cardCount = playerHand.length;
-        socket.emit("update card count", username, playerHand.length);
+  // Use a small timeout to ensure the DOM has updated before attaching events
+  setTimeout(() => {
+    // Check if missedCard exists before trying to attach event
+    if (missedCard) {
+      const useMissedBtn = document.getElementById(`useMissed-${missedDialog.id}`);
+      if (useMissedBtn) {
+        useMissedBtn.addEventListener("click", () => {
+          const cardIndex = playerHand.findIndex(card => card.name === missedCard.name && card.details === missedCard.details);
+          if (cardIndex !== -1) {
+            playerHand.splice(cardIndex, 1);
+            discardCard(missedCard);
+            const currentPlayer = players.find(p => p.username === username);
+            if (currentPlayer) {
+              currentPlayer.cardCount = playerHand.length;
+              socket.emit("update card count", username, playerHand.length);
+            }
+          }
+
+          socket.emit("use missed", {
+            attacker: attacker,
+            card: missedCard
+          });
+
+          // Check if dialog still exists before removing
+          if (missedDialog.parentNode) {
+            document.body.removeChild(missedDialog);
+          }
+          renderPlayerCards(players);
+        });
       }
     }
 
-    socket.emit("use missed", {
-      attacker: attacker,
-      card: missedCard
-    });
-
-    document.body.removeChild(missedDialog);
-    renderPlayerCards(players);
-  });
-  }
-
-
-  document.getElementById("takeDamage").addEventListener("click", () => {
-    socket.emit("take damage", {
-      amount: 1,
-      attacker: attacker
-    });
-
-    document.body.removeChild(missedDialog);
-  });
-
-
-  if (currentPlayer.attributes.includes("Barrel")) {
-    document.getElementById("useBarrel").addEventListener("click", () => { 
-
-      const barrelCard = gameDeck.pop();
-      console.log(barrelCard);
-      if (barrelCard.details.includes("♥")) {
-        console.log("Barrel card is a heart");
-        socket.emit("use missed", {
-          attacker: attacker,
-          card: barrelCard
+    const takeDamageBtn = document.getElementById(`takeDamage-${missedDialog.id}`);
+    if (takeDamageBtn) {
+      takeDamageBtn.addEventListener("click", () => {
+        socket.emit("take damage", {
+          amount: 1,
+          attacker: attacker
         });
-        document.body.removeChild(missedDialog);
-      } else {
-        console.log("Barrel card is not a heart");
-        document.getElementById("useBarrel").style.display = "none"; // BACHA NA INSPECT ELEMENT PAK VYRES!!
-      }
-    });
-  }
 
+        // Check if dialog still exists before removing
+        if (missedDialog.parentNode) {
+          document.body.removeChild(missedDialog);
+        }
+      });
+    }
 
-  if (currentPlayer.champion === "Jourdonnais") {
-    document.getElementById("usePassive").addEventListener("click", () => { 
-
-      const barrelCard = gameDeck.pop();
-      console.log(barrelCard);
-      if (barrelCard.details.includes("♥")) {
-        console.log("Card is heart");
-        socket.emit("use missed", {
-          attacker: attacker,
-          card: barrelCard
+    // Set up Barrel button if it exists
+    if (currentPlayer.attributes && currentPlayer.attributes.includes("Barrel")) {
+      const useBarrelBtn = document.getElementById(`useBarrel-${missedDialog.id}`);
+      if (useBarrelBtn) {
+        useBarrelBtn.addEventListener("click", () => { 
+          // Store a reference to the button for later use
+          const barrelBtn = useBarrelBtn;
+          
+          const barrelCard = gameDeck.pop();
+          console.log(barrelCard);
+          if (barrelCard.details.includes("♥")) {
+            console.log("Barrel card is a heart");
+            socket.emit("use missed", {
+              attacker: attacker,
+              card: barrelCard
+            });
+            
+            // Check if dialog still exists before removing
+            if (missedDialog.parentNode) {
+              document.body.removeChild(missedDialog);
+            }
+          } else {
+            console.log("Barrel card is not a heart");
+            // Disable the button instead of hiding it
+            barrelBtn.disabled = true;
+            barrelBtn.textContent = "Barrel failed";
+            barrelBtn.style.backgroundColor = "#ccc";
+          }
         });
-        document.body.removeChild(missedDialog);
-      } else {
-        console.log("Card is not a heart");
-        document.getElementById("usePassive").style.display = "none"; // bro muze inspect elementnout
       }
-    });
-  }
+    }
+
+    // Set up Jourdonnais passive button if it exists
+    if (currentPlayer.champion === "Jourdonnais") {
+      const usePassiveBtn = document.getElementById(`usePassive-${missedDialog.id}`);
+      if (usePassiveBtn) {
+        usePassiveBtn.addEventListener("click", () => { 
+          // Store a reference to the button for later use
+          const passiveBtn = usePassiveBtn;
+          
+          const barrelCard = gameDeck.pop();
+          console.log(barrelCard);
+          if (barrelCard.details.includes("♥")) {
+            console.log("Card is heart");
+            socket.emit("use missed", {
+              attacker: attacker,
+              card: barrelCard
+            });
+            
+            // Check if dialog still exists before removing
+            if (missedDialog.parentNode) {
+              document.body.removeChild(missedDialog);
+            }
+          } else {
+            console.log("Card is not a heart");
+            // Disable the button instead of hiding it
+            passiveBtn.disabled = true;
+            passiveBtn.textContent = "Passive failed";
+            passiveBtn.style.backgroundColor = "#ccc";
+          }
+        });
+      }
+    }
+  }, 50); // Small delay to ensure DOM is ready
 }
-
-
 
 socket.on("attack missed", (data) => {
   console.log(`${data.defender} used Missed! to avoid Bang! from ${data.attacker}`);
@@ -1558,8 +1620,45 @@ socket.on("player eliminated", (data) => {
   }
 });
 
+// Add handler for discarding all cards when eliminated
+socket.on("discard all cards", () => {
+  console.log(`[Discard All] Received 'discard all cards' event. Current hand size: ${playerHand.length}`);
+  
+  // Send each card to the discard pile
+  const cardsToDiscard = [...playerHand]; // Copy hand before modifying
+  playerHand = []; // Clear hand immediately
+  
+  console.log(`[Discard All] Copied hand, cleared local playerHand. Discarding ${cardsToDiscard.length} cards.`);
+  
+  cardsToDiscard.forEach(card => {
+    console.log(`[Discard All] Discarding card: ${card.name} (${card.details})`);
+    discardCard(card); // This function already emits to server
+  });
+  
+  // Update card count - let server handle this implicitly via discard events?
+  // Might be redundant if server recalculates based on discards.
+  // For now, keep client update for immediate UI feedback.
+  const currentPlayer = players.find(p => p.username === username);
+  if(currentPlayer) {
+    currentPlayer.cardCount = 0;
+    console.log(`[Discard All] Setting local card count to 0 for ${username}.`);
+    // Optionally emit update card count, or let server handle it via discard events
+    // socket.emit("update card count", username, 0);
+  } else {
+    console.log(`[Discard All] Could not find player data for ${username} to update card count locally.`);
+  }
+  
+  // Re-render to show empty hand immediately
+  renderPlayerCards(players);
+  console.log("[Discard All] Finished discarding process.");
+});
+
 socket.on("indians attack", (data) => {
   if (data.attacker === username) return;
+  
+  // Skip if player is eliminated
+  const currentPlayer = players.find(p => p.username === username);
+  if (currentPlayer && currentPlayer.hp <= 0) return;
 
   console.log(`${data.attacker} played Indians! - all players must discard a Bang! or lose 1 life point`);
   const bangCard = playerHand.find(card => card.name === "Bang!");
@@ -1575,16 +1674,23 @@ socket.on("indians attack", (data) => {
 });
 
 function showIndiansDialog(attacker, bangCard) {
+  // First, check if another dialog is already open and remove it
+  const existingDialog = document.querySelector('.missed-dialog');
+  if (existingDialog) {
+    document.body.removeChild(existingDialog);
+  }
+
   const indiansDialog = document.createElement("div");
   indiansDialog.className = "missed-dialog"; // Reusing the missed dialog styling
+  indiansDialog.id = `indians-dialog-${Date.now()}`; // Add unique ID to prevent conflicts
   
   const dialogHTML = `
     <div class="missed-dialog-content">
       <h3>${attacker} played Indians!</h3>
       <p>You can discard a Bang! card to defend yourself.</p>
       <div class="missed-buttons">
-        <button id="takeDamage">Take damage</button>
-        ${bangCard ? `<button id="useBang">Use Bang!</button>` : ''}
+        <button id="takeDamage-${indiansDialog.id}">Take damage</button>
+        ${bangCard ? `<button id="useBang-${indiansDialog.id}">Use Bang!</button>` : ''}
       </div>
     </div>
   `;
@@ -1592,37 +1698,52 @@ function showIndiansDialog(attacker, bangCard) {
   indiansDialog.innerHTML = dialogHTML;
   document.body.appendChild(indiansDialog);
   
-  if (bangCard) {
-    document.getElementById("useBang").addEventListener("click", () => {
-      const cardIndex = playerHand.findIndex(card => card.name === bangCard.name && card.details === bangCard.details);
-      if (cardIndex !== -1) {
-        playerHand.splice(cardIndex, 1);
-        discardCard(bangCard);
-        const currentPlayer = players.find(p => p.username === username);
-        if (currentPlayer) {
-          currentPlayer.cardCount = playerHand.length;
-          socket.emit("update card count", username, playerHand.length);
-        }
+  // Use a small timeout to ensure the DOM has updated before attaching events
+  setTimeout(() => {
+    if (bangCard) {
+      const useBangBtn = document.getElementById(`useBang-${indiansDialog.id}`);
+      if (useBangBtn) {
+        useBangBtn.addEventListener("click", () => {
+          const cardIndex = playerHand.findIndex(card => card.name === bangCard.name && card.details === bangCard.details);
+          if (cardIndex !== -1) {
+            playerHand.splice(cardIndex, 1);
+            discardCard(bangCard);
+            const currentPlayer = players.find(p => p.username === username);
+            if (currentPlayer) {
+              currentPlayer.cardCount = playerHand.length;
+              socket.emit("update card count", username, playerHand.length);
+            }
+          }
+          
+          socket.emit("defend indians", {
+            attacker: attacker,
+            card: bangCard
+          });
+          
+          // Check if dialog still exists before removing
+          if (indiansDialog.parentNode) {
+            document.body.removeChild(indiansDialog);
+          }
+          renderPlayerCards(players);
+        });
       }
-      
-      socket.emit("defend indians", {
-        attacker: attacker,
-        card: bangCard
-      });
-      
-      document.body.removeChild(indiansDialog);
-      renderPlayerCards(players);
-    });
-  }
-  
-  document.getElementById("takeDamage").addEventListener("click", () => {
-    socket.emit("take damage", {
-      amount: 1,
-      attacker: attacker
-    });
+    }
     
-    document.body.removeChild(indiansDialog);
-  });
+    const takeDamageBtn = document.getElementById(`takeDamage-${indiansDialog.id}`);
+    if (takeDamageBtn) {
+      takeDamageBtn.addEventListener("click", () => {
+        socket.emit("take damage", {
+          amount: 1,
+          attacker: attacker
+        });
+        
+        // Check if dialog still exists before removing
+        if (indiansDialog.parentNode) {
+          document.body.removeChild(indiansDialog);
+        }
+      });
+    }
+  }, 50); // Small delay to ensure DOM is ready
 }
 
 socket.on("indians defended", (data) => {
@@ -1632,9 +1753,12 @@ socket.on("indians defended", (data) => {
 socket.on("gatling attack", (data) => {
   if (data.attacker === username) return;
 
+  // Skip if player is eliminated
+  const currentPlayer = players.find(p => p.username === username);
+  if (currentPlayer && currentPlayer.hp <= 0) return;
+
   console.log(`${data.attacker} played Gatling - all players must discard a Missed! or lose 1 life point`);
   const missedCard = playerHand.find(card => card.name === "Missed!");
-  const currentPlayer = players.find(p => p.username === username);
 
   if (missedCard || (currentPlayer && (currentPlayer.champion === "Jourdonnais" || currentPlayer.attributes.includes("Barrel")))) {
     showMissedDialog(data.attacker, missedCard);
@@ -1670,7 +1794,9 @@ socket.on("update attributes", (playerUsername, attributes) => {
 function enableCatBalouTargeting() {
   const playerCards = document.querySelectorAll('.player-card');
   playerCards.forEach(card => {
-    if (card.classList.contains('current-player')) return;
+    // Skip targeting self or eliminated players
+    if (card.classList.contains('current-player') || card.classList.contains('eliminated')) return;
+    
     card.classList.add('targetable');
     card.addEventListener('click', handleCatBalouTargeting);
   });
@@ -1831,7 +1957,9 @@ socket.on("cat balou result", (data) => {
 function enablePanicTargeting() {
   const playerCards = document.querySelectorAll('.player-card');
   playerCards.forEach(card => {
-    if (card.classList.contains('current-player')) return;
+    // Skip targeting self or eliminated players
+    if (card.classList.contains('current-player') || card.classList.contains('eliminated')) return;
+    
     card.classList.add('targetable');
     card.addEventListener('click', handlePanicTargeting);
   });
@@ -2440,7 +2568,9 @@ socket.on("use missed", (data) => {
 function enableJailTargeting() {
   const playerCards = document.querySelectorAll('.player-card');
   playerCards.forEach(card => {
-    if (card.classList.contains('current-player') || card.classList.contains('sheriff')) return;
+    // Skip targeting self, sheriff, or eliminated players
+    if (card.classList.contains('current-player') || card.classList.contains('sheriff') || card.classList.contains('eliminated')) return;
+    
     card.classList.add('targetable');
     card.addEventListener('click', handleJailTargeting);
   });
