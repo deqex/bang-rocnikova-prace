@@ -265,6 +265,16 @@ function generateGameData(players) {
     { name: "Schofield", details: "K♠" },
     { name: "Scope", details: "A♠" },
     { name: "Volcanic", details: "10♠" },
+    { name: "Volcanic", details: "10♠" },
+    { name: "Volcanic", details: "10♠" },
+    { name: "Volcanic", details: "10♠" },
+    { name: "Volcanic", details: "10♠" },
+    { name: "Volcanic", details: "10♠" },
+    { name: "Volcanic", details: "10♠" },
+    { name: "Volcanic", details: "10♠" },
+    { name: "Volcanic", details: "10♠" },
+    { name: "Volcanic", details: "10♠" },
+    { name: "Volcanic", details: "10♠" },
     { name: "Volcanic", details: "10♣" },
     { name: "Winchester", details: "8♠" },
     { name: "Bang!", details: "A♠" },
@@ -901,6 +911,22 @@ function renderPlayerCards(gameData) {
             socket.emit("update card count", username, playerHand.length);
             socket.emit("update attributes", username, currentPlayer.attributes);
             console.log("Equipped Remington: Range increased to 3");
+          }
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+          renderPlayerCards(players);
+          return;
+        }
+
+        if (card.name === "Volcanic") {
+          const currentPlayer = players.find(p => p.username === username);
+          if (currentPlayer) {
+            currentPlayer.attributes.push("Volcanic");
+            playerHand.splice(index, 1);
+            currentPlayer.cardCount = playerHand.length;
+            socket.emit("update card count", username, playerHand.length);
+            socket.emit("update attributes", username, currentPlayer.attributes);
+            console.log("Equipped Volcanic: you can now play as many bangs as you want");
           }
           document.body.removeChild(cardMenu);
           cardSelectionOpen = false;

@@ -498,7 +498,7 @@ io.on("connection", (socket) => {
     });
 
     const playerData = room.gameData.find(player => player.username === socket.data.user);
-    if (playerData.champion === "Willy the Kid") { //&& !playerData.attributes === "Volcanic"
+    if (playerData.champion === "Willy the Kid" || playerData.attributes.includes("Volcanic")) { 
       console.log("simga")
     } else {
             // zacatek ai
