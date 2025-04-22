@@ -224,7 +224,7 @@ function calculateDistance(playerA, playerB, totalPlayers) {
   return distance;
 }
 
-//
+//f
 //
 // KONEC AI KOD SEKCE
 //
@@ -252,31 +252,6 @@ function generateGameData(players) {
   const bangCards = [ // generovano pomoci ai abych nemusel opisovat s trochou opravy struktura tvorena mnou
     { name: "Barrel", details: "Q♠" },
     { name: "Barrel", details: "K♠" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
-    { name: "Dynamite", details: "2♥" },
     { name: "Dynamite", details: "2♥" },
     { name: "Jail", details: "J♠" },
     { name: "Jail", details: "4♥" },
@@ -813,7 +788,11 @@ function renderPlayerCards(gameData) {
           document.body.appendChild(targetInstruction);
 
           enableTargeting();
-          numberOfDrawnCards = 0;
+          const currentPlayer = players.find(p => p.username === username);
+          if (!currentPlayer.champion === "Willy the Kid") {
+            numberOfDrawnCards = 0;
+          }
+          
           return;
         }
 
