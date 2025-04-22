@@ -610,6 +610,15 @@ io.on("connection", (socket) => {
       currentHP: playerData.hp
     });
 
+
+    if (playerData.hp <= 0) {
+      console.log(`${socket.data.user} was eliminated by ${data.attacker}!`);
+      io.to(socket.data.room).emit("player eliminated", {
+        player: socket.data.user,
+        attacker: data.attacker
+      });
+    }
+
     if (playerData.champion === "Bart Cassidy") {
       const drawnCard = room.gameDeck.pop();
       console.log(`${socket.data.user} drew card ${drawnCard.name} (${drawnCard.details}) in room ${socket.data.room}`);
@@ -689,13 +698,7 @@ io.on("connection", (socket) => {
       currentHP: playerData.hp
     });
 
-    if (playerData.hp <= 0) {
-      console.log(`${socket.data.user} was eliminated!`);
-      io.to(socket.data.room).emit("player eliminated", {
-        player: socket.data.user,
-        attacker: data.attacker
-      });
-    }
+
   });
 
   socket.on("play cat balou", (data) => {

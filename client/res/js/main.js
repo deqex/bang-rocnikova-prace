@@ -618,6 +618,10 @@ function renderPlayerCards(gameData) {
       playerCard.classList.add("active-turn");
     }
 
+    if (player.hp <= 0) {
+      playerCard.classList.add("eliminated");
+    }
+
     // Calculate distance between current player and this player
     const distance = isCurrentPlayer ? 0 : calculateDistance(currentPlayerData, player, gameData.length);
 
@@ -626,7 +630,7 @@ function renderPlayerCards(gameData) {
 
     // Determine what role to display
     let roleDisplay = "?";
-    if (isCurrentPlayer || player.role === "Sheriff") {
+    if (isCurrentPlayer || player.role === "Sheriff" || player.hp <= 0) {
       roleDisplay = player.role;
     }
 
@@ -1551,10 +1555,6 @@ socket.on("player eliminated", (data) => {
   if (data.player === username) {
     const controls = document.querySelector('.game-controls');
     controls.style.display = 'none';
-    const eliminationMsg = document.createElement('div');
-    eliminationMsg.className = 'elimination-message';
-    eliminationMsg.innerHTML = `<h2>You have been eliminated!</h2>`;
-    document.body.appendChild(eliminationMsg);
   }
 });
 
