@@ -499,7 +499,7 @@ io.on("connection", (socket) => {
 
     const playerData = room.gameData.find(player => player.username === socket.data.user);
     if (playerData.champion === "Willy the Kid" || playerData.attributes.includes("Volcanic")) { 
-      console.log("simga")
+      console.log(`${socket.data.user} has either Willy the Kid or Volcanic, can play unlimited bangs.`)
     } else {
             // zacatek ai
       const currentPlayerIndex = room.gameData.findIndex(p => p.username === socket.data.user);

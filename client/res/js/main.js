@@ -232,10 +232,10 @@ function calculateDistance(playerA, playerB, totalPlayers) {
 
 function generateGameData(players) {
   const championData = { // generovano pomoci ai 
-    "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
+   // "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
    // "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
  //   "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
-    "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
+  //  "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
    // "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
  //   "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
    // "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
@@ -243,7 +243,7 @@ function generateGameData(players) {
     "Pedro Ramirez": { baseHP: 4, description: "He may draw his first card from the discard pile." },
     //"Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
     //"Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
- //   "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
+    "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
    // "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
     "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
     "Vulture Sam": { baseHP: 4, description: "Takes all cards of eliminated players" }
@@ -266,16 +266,6 @@ function generateGameData(players) {
     { name: "Scope", details: "A♠" },
     { name: "Volcanic", details: "10♠" },
     { name: "Volcanic", details: "10♠" },
-    { name: "Volcanic", details: "10♠" },
-    { name: "Volcanic", details: "10♠" },
-    { name: "Volcanic", details: "10♠" },
-    { name: "Volcanic", details: "10♠" },
-    { name: "Volcanic", details: "10♠" },
-    { name: "Volcanic", details: "10♠" },
-    { name: "Volcanic", details: "10♠" },
-    { name: "Volcanic", details: "10♠" },
-    { name: "Volcanic", details: "10♠" },
-    { name: "Volcanic", details: "10♣" },
     { name: "Winchester", details: "8♠" },
     { name: "Bang!", details: "A♠" },
     { name: "Bang!", details: "2♦" },
@@ -1380,6 +1370,11 @@ socket.on("bang attack", (data) => {
   const missedCard = playerHand.find(card => card.name === "Missed!");
 
     const currentPlayer = players.find(p => p.username === username);
+    const attackingPlayer = players.find(p => p.username === data.attacker);
+    if (attackingPlayer.champion === "Slab the Killer") {
+      console.log("sigmic")
+    }
+    
   if (missedCard || currentPlayer.champion === "Jourdonnais" || currentPlayer.attributes.includes("Barrel")) {
     showMissedDialog(data.attacker, missedCard);
   } else {
