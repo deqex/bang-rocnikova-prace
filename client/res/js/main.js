@@ -1262,16 +1262,11 @@ socket.on("update turn", (playerUsername) => {
   if (currentTurn === username) {
     console.log("It's your turn!");
     numberOfDrawnCards = 0;
-    
+
     const currentPlayer = players.find(p => p.username === username);
-    
-    if (currentPlayer && currentPlayer.attributes && currentPlayer.attributes.includes("Dynamite")) {
-        console.log("Dynamite detected, waiting for server check.");
-        dynamiteCheckPending = true;
-    } else if (currentPlayer && currentPlayer.attributes && currentPlayer.attributes.includes("Jail")) { // pak vyres co kdyz bro ma oba
+
+    if (currentPlayer && currentPlayer.attributes && currentPlayer.attributes.includes("Jail")) {
         socket.emit("jail turn start");
-    } else {
-        dynamiteCheckPending = false; 
     }
   }
 });
@@ -1384,7 +1379,7 @@ function handleCardTargeting(event) {
 
   if (cardIndex !== -1) {
     playerHand.splice(cardIndex, 1);
-    discardCard(selectedCard);
+    // discardCard(selectedCard); 
     currentPlayer.cardCount = playerHand.length;
     socket.emit("update card count", username, playerHand.length);
   }
@@ -1483,7 +1478,7 @@ function showMissedDialog(attacker, missedCard) {
           const cardIndex = playerHand.findIndex(card => card.name === missedCard.name && card.details === missedCard.details);
           if (cardIndex !== -1) {
             playerHand.splice(cardIndex, 1);
-            discardCard(missedCard);
+            // discardCard(missedCard); // REMOVED - Server handles discard on "use missed"
             const currentPlayer = players.find(p => p.username === username);
             if (currentPlayer) {
               currentPlayer.cardCount = playerHand.length;
@@ -1493,7 +1488,7 @@ function showMissedDialog(attacker, missedCard) {
 
           socket.emit("use missed", {
             attacker: attacker,
-            card: missedCard
+            card: missedCard // Send the card info so server knows what was used
           });
 
           // Check if dialog still exists before removing
@@ -1837,7 +1832,7 @@ function handleCatBalouTargeting(event) {
 
   if (cardIndex !== -1) {
     playerHand.splice(cardIndex, 1);
-    discardCard(selectedCard);
+    // discardCard(selectedCard); // REMOVED - Server handles discard on "play cat balou"
     currentPlayer.cardCount = playerHand.length;
     socket.emit("update card count", username, playerHand.length);
   }
@@ -2027,7 +2022,6 @@ function handlePanicTargeting(event) {
 
   if (cardIndex !== -1) {
     playerHand.splice(cardIndex, 1);
-    discardCard(selectedCard);
     currentPlayer.cardCount = playerHand.length;
     socket.emit("update card count", username, playerHand.length);
   }
@@ -2038,7 +2032,6 @@ function handlePanicTargeting(event) {
 
 function showPanicOptionsDialog(targetUsername) {
   const targetPlayer = players.find(p => p.username === targetUsername);
-  // Store the card reference before we lose it
   const cardReference = {...selectedCard};
   
   const optionsDialog = document.createElement("div");
@@ -2069,7 +2062,7 @@ function showPanicOptionsDialog(targetUsername) {
       socket.emit("play panic", {
         target: targetUsername,
         action: "stealCard",
-        card: cardReference  // Use the saved reference
+        card: cardReference 
       });
       document.body.removeChild(optionsDialog);
       renderPlayerCards(players);
@@ -2195,11 +2188,11 @@ socket.on("panic result", (data) => {
 });
 
 socket.on("suzy laffayete card", (data) => {
-  console.log(`received ${data.card} for ${data.for}`) //no point atp ale necham to
+  console.log(`received ${data.card} for ${data.for}`)
 })
 
 socket.on("kit carlson cards", (data) => {
-  console.log(`received ${data.cards} for ${data.for}`); // no point atp ale necham to
+  console.log(`received ${data.cards} for ${data.for}`);
   kitCarlsonFunction(data)
 });
 
@@ -2372,38 +2365,30 @@ socket.on("general store update selector", (data) => {
     selectorInfo.innerHTML = `Current selector: <strong>${data.currentSelector}</strong>`;
   }
   
-  // If it's now your turn, enable cards and show prompt
   if (data.currentSelector === username) {
-    // Remove any existing waiting message
     const waitingMsg = dialog.querySelector('.waiting');
     if (waitingMsg) waitingMsg.remove();
     
     const generalStoreContent = dialog.querySelector('.general-store-content');
     
-    // Remove existing 'your turn' message if present
     const existingYourTurn = dialog.querySelector('.your-turn');
     if (existingYourTurn) existingYourTurn.remove();
     
-    // Add 'your turn' message
     const yourTurnMsg = document.createElement('p');
     yourTurnMsg.className = 'your-turn';
     yourTurnMsg.textContent = "It's your turn to select a card!";
     
-    // Insert before the cards container
     const cardsContainer = dialog.querySelector('.general-store-cards');
     generalStoreContent.insertBefore(yourTurnMsg, cardsContainer);
     
-    // Enable card selection and attach fresh event listeners
     const storeCards = dialog.querySelectorAll('.general-store-card');
     storeCards.forEach(card => {
       card.classList.remove('disabled');
       card.style.pointerEvents = 'auto';
       
-      // Remove any existing listeners to prevent duplicates
       const clone = card.cloneNode(true);
       card.parentNode.replaceChild(clone, card);
       
-      // Add fresh listener
       clone.addEventListener('click', function() {
         const cardName = this.getAttribute('data-name');
         const cardDetails = this.getAttribute('data-details');
@@ -2414,13 +2399,11 @@ socket.on("general store update selector", (data) => {
           card: { name: cardName, details: cardDetails }
         });
         
-        // Disable all cards after selection
         dialog.querySelectorAll('.general-store-card').forEach(c => {
           c.classList.add('disabled');
           c.style.pointerEvents = 'none';
         });
         
-        // Update UI to show waiting state
         const yourTurnElement = dialog.querySelector('.your-turn');
         if (yourTurnElement) yourTurnElement.remove();
         
@@ -2431,11 +2414,9 @@ socket.on("general store update selector", (data) => {
       });
     });
   } else {
-    // If it's not your turn, ensure cards are disabled and update waiting message
     const yourTurnMsg = dialog.querySelector('.your-turn');
     if (yourTurnMsg) yourTurnMsg.remove();
     
-    // Update or create waiting message
     let waitingMsg = dialog.querySelector('.waiting');
     if (!waitingMsg) {
       waitingMsg = document.createElement('p');
@@ -2445,7 +2426,6 @@ socket.on("general store update selector", (data) => {
     }
     waitingMsg.textContent = `Waiting for ${data.currentSelector} to select a card...`;
     
-    // Ensure cards are disabled
     const storeCards = dialog.querySelectorAll('.general-store-card');
     storeCards.forEach(card => {
       card.classList.add('disabled');
@@ -2454,14 +2434,12 @@ socket.on("general store update selector", (data) => {
   }
 });
 
-// Update the event listener for when a card is selected
 socket.on("general store card selected", (data) => {
   console.log(`${data.player} selected ${data.card.name} from General Store`);
   
   const dialog = document.querySelector('.general-store-dialog');
   if (!dialog) return;
   
-  // Remove the selected card from the display
   let cardRemoved = false;
   const cards = dialog.querySelectorAll('.general-store-card');
   cards.forEach(cardElement => {
@@ -2476,7 +2454,6 @@ socket.on("general store card selected", (data) => {
     console.warn(`Card ${data.card.name} (${data.card.details}) not found in the display`);
   }
   
-  // Create or find selections container
   let selectionsContainer = dialog.querySelector('.selections-container');
   if (!selectionsContainer) {
     selectionsContainer = document.createElement('div');
@@ -2484,7 +2461,6 @@ socket.on("general store card selected", (data) => {
     dialog.querySelector('.general-store-content').appendChild(selectionsContainer);
   }
   
-  // Add selection info
   const selectionInfo = document.createElement('div');
   selectionInfo.className = 'selection-info';
   selectionInfo.textContent = `${data.player} selected ${data.card.name}`;
@@ -2492,9 +2468,7 @@ socket.on("general store card selected", (data) => {
   selectionsContainer.appendChild(selectionInfo);
 });
 
-// Update this event listener for when the general store is complete
 socket.on("general store complete", (data) => {
-  // If you're one of the players who selected a card, add it to your hand
   if (data.selectedBy === username && data.card) {
     playerHand.push(data.card);
     const currentPlayer = players.find(p => p.username === username);
@@ -2504,7 +2478,6 @@ socket.on("general store complete", (data) => {
     }
   }
   
-  // Show final message and close dialog after delay
   const dialog = document.querySelector('.general-store-dialog');
   if (dialog) {
     const finalMsg = document.createElement('p');
@@ -2583,7 +2556,6 @@ socket.on("use missed", (data) => {
 function enableJailTargeting() {
   const playerCards = document.querySelectorAll('.player-card');
   playerCards.forEach(card => {
-    // Skip targeting self, sheriff, or eliminated players
     if (card.classList.contains('current-player') || card.classList.contains('sheriff') || card.classList.contains('eliminated')) return;
     
     card.classList.add('targetable');
@@ -2647,6 +2619,13 @@ socket.on("check jail", () => {
 });
 
 function showJailDialog() {
+  const existingDialog = document.querySelector('.jail-dialog');
+  if (existingDialog) {
+    console.log("Jail dialog already open, not creating a new one.");
+    return; 
+  }
+  console.log("[showJailDialog] Creating Jail dialog.");
+
   const jailDialog = document.createElement("div");
   jailDialog.className = "jail-dialog";
   
@@ -2665,6 +2644,7 @@ function showJailDialog() {
   document.body.appendChild(jailDialog);
   
   document.getElementById("drawJailCard").addEventListener("click", () => {
+    console.log("[showJailDialog] Draw Jail Card button clicked.");
     socket.emit("check jail escape");
     
     document.getElementById("drawJailCard").disabled = true;
@@ -2681,7 +2661,7 @@ socket.on("jail result", (data) => {
   const drawnCardHTML = `
     <div class="drawn-jail-card">
       <p>You drew:</p>
-      <div class="card-item" style="margin: 10px auto;"> <!-- Added inline margin for centering -->
+      <div class="card-item" style="margin: 10px auto;">
           <img src="${imagePath}" alt="${data.card.name}" style="width: 100%; height: 100%; object-fit: contain;">
           <div class="card-details-overlay">${data.card.details}</div>
       </div>
@@ -2806,6 +2786,12 @@ socket.on("dynamite turn start", (data) => {
 });
 
 function showDynamiteCheckDialog() {
+    const existingDialog = document.querySelector('.dynamite-dialog');
+    if (existingDialog) {
+        console.log("Dynamite dialog already open, not creating a new one.");
+        return; 
+    }
+
     const dynamiteDialog = document.createElement("div");
     dynamiteDialog.className = "dynamite-dialog"; 
     
@@ -2865,7 +2851,7 @@ socket.on("dynamite explosion", (data) => {
 
     dismissButton.addEventListener("click", () => {
         document.body.removeChild(dynamiteDialog);
-         
+        dynamiteCheckPending = false; 
         const drawButton = document.getElementById("drawCard");
         if (drawButton && currentTurn === username) drawButton.disabled = false; 
     });
@@ -2916,6 +2902,7 @@ socket.on("dynamite passed", (data) => {
 
     dismissButton.addEventListener("click", () => {
         document.body.removeChild(dynamiteDialog);
+        dynamiteCheckPending = false;
         const drawButton = document.getElementById("drawCard");
         if (drawButton && currentTurn === username) drawButton.disabled = false;
     });

@@ -680,29 +680,77 @@ io.on("connection", (socket) => {
 
     if (playerData.hp <= 0) {
       console.log(`[Elimination Check - Damage] Player ${socket.data.user} HP <= 0.`);
-      playerData.eliminated = true; // Mark as eliminated
-      console.log(`[Elimination Check - Damage] Marked ${socket.data.user} as eliminated.`);
-      
-      // Find this player's socket to request their cards
-      const playerSocket = [...io.sockets.sockets.values()].find(
-        s => s.data.user === socket.data.user && s.data.room === socket.data.room
-      );
-      
-      if (playerSocket) {
-        console.log(`[Elimination Check - Damage] Found socket for ${socket.data.user}, emitting 'discard all cards'.`);
-        playerSocket.emit("discard all cards");
+      if (!playerData.eliminated) { 
+        playerData.eliminated = true; 
+        console.log(`[Elimination Check - Damage] Marked ${socket.data.user} as eliminated.`);
+        
+        const playerSocket = [...io.sockets.sockets.values()].find(
+          s => s.data.user === socket.data.user && s.data.room === socket.data.room
+        );
+        
+        if (playerSocket) {
+          console.log(`[Elimination Check - Damage] Found socket for ${socket.data.user}, emitting 'discard all cards'.`);
+          playerSocket.emit("discard all cards");
+        } else {
+          console.log(`[Elimination Check - Damage] Could not find socket for ${socket.data.user} to discard cards.`);
+        }
+        
+        console.log(`[Elimination Check - Damage] Emitting 'player eliminated' for ${socket.data.user}.`);
+        io.to(socket.data.room).emit("player eliminated", {
+          player: socket.data.user,
+          attacker: data.attacker
+        });
+
+        if (playerData.role === "Renegade" && data.attacker && data.attacker !== socket.data.user) {
+          const attackerData = room.gameData.find(p => p.username === data.attacker);
+          if (attackerData && attackerData.hp > 0) {
+            console.log(`[Reward] ${data.attacker} eliminated Renegade ${socket.data.user}. Granting 3 card reward.`);
+            const attackerSocket = [...io.sockets.sockets.values()].find(
+              s => s.data.user === data.attacker && s.data.room === socket.data.room
+            );
+
+            if (attackerSocket) {
+              let cardsDrawnCount = 0;
+              for (let i = 0; i < 3; i++) {
+                if (!room.gameDeck || room.gameDeck.length === 0) {
+                  if (room.discardPile && room.discardPile.length > 0) {
+                    console.log(`[Reward Draw] Deck empty, shuffling discard pile with ${room.discardPile.length} cards`);
+                    room.gameDeck = shuffleArray([...room.discardPile]);
+                    room.discardPile = [];
+                    io.to(socket.data.room).emit("discard pile update", { lastCard: null }); 
+                    console.log(`[Reward Draw] New deck created with ${room.gameDeck.length} cards`);
+                  } else {
+                    console.log(`[Reward Draw] No cards left in deck or discard for ${data.attacker}`);
+                    break; 
+                  }
+                }
+                const drawnCard = room.gameDeck.pop();
+                if (drawnCard) {
+                  console.log(`[Reward Draw] ${data.attacker} drew card ${drawnCard.name} (${drawnCard.details})`);
+                  attackerSocket.emit("draw card result", {
+                    success: true,
+                    card: drawnCard,
+                    remainingCards: room.gameDeck.length
+                  });
+                  cardsDrawnCount++;
+                }
+              }
+              console.log(`[Reward] Granted ${cardsDrawnCount} cards to ${data.attacker}.`);
+            } else {
+              console.log(`[Reward] Could not find socket for attacker ${data.attacker}.`);
+            }
+          } else {
+             console.log(`[Reward] Attacker ${data.attacker} is eliminated or not found, no reward for eliminating Renegade ${socket.data.user}.`);
+          }
+        } else if (playerData.role === "Renegade") {
+             console.log(`[Reward] Renegade ${socket.data.user} eliminated, but attacker was self or undefined.`);
+        }
       } else {
-        console.log(`[Elimination Check - Damage] Could not find socket for ${socket.data.user} to discard cards.`);
+          console.log(`[Elimination Check - Damage] Player ${socket.data.user} was already marked eliminated.`);
       }
-      
-      console.log(`[Elimination Check - Damage] Emitting 'player eliminated' for ${socket.data.user}.`);
-      io.to(socket.data.room).emit("player eliminated", {
-        player: socket.data.user,
-        attacker: data.attacker
-      });
     }
 
-    if (playerData.champion === "Bart Cassidy") {
+    if (playerData.champion === "Bart Cassidy" && !playerData.eliminated) { 
       const drawnCard = room.gameDeck.pop();
       console.log(`${socket.data.user} drew card ${drawnCard.name} (${drawnCard.details}) in room ${socket.data.room}`);
 
