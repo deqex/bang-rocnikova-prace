@@ -1602,6 +1602,202 @@ io.on("connection", (socket) => {
     io.to(room.roomNum).emit("update turn", currentPlayer.username);
   }
   // konec ai 
+
+  socket.on("play duel", (data) => {
+    if (!socket.data.room) return;
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData) return;
+
+    if (room.currentTurn !== socket.data.user) {
+      console.log(`Duel play rejected: ${socket.data.user} tried to play Duel when it's ${room.currentTurn}'s turn`);
+      return;
+    }
+    
+    if (room.duelState) {
+        console.log(`Duel play rejected: Another duel is already in progress in room ${socket.data.room}`);
+        socket.emit("error", { message: "Another duel is already in progress." });
+        return;
+    }
+
+    const targetPlayer = room.gameData.find(player => player.username === data.target);
+    if (!targetPlayer || targetPlayer.hp <= 0 || targetPlayer.username === socket.data.user) {
+      console.log(`Duel target rejected: ${data.target} is invalid (eliminated or self)`);
+      socket.emit("error", { message: "Invalid Duel target." });
+      return;
+    }
+
+    addCardToDiscardPile(room, data.card);
+    console.log(`${socket.data.user} initiated a Duel against ${data.target} in room ${socket.data.room}`);
+
+    room.duelState = {
+        attacker: socket.data.user,
+        target: data.target,
+        currentChallenger: data.target, 
+        lastBangCard: null 
+    };
+
+    const targetSocket = [...io.sockets.sockets.values()].find(
+        s => s.data.user === data.target && s.data.room === socket.data.room
+    );
+
+    if (targetSocket) {
+        targetSocket.emit("duel challenge", { challenger: socket.data.user });
+    } else {
+        console.log(`Could not find socket for Duel target ${data.target}.`);
+        delete room.duelState;
+    }
+  });
+
+  socket.on("duel response", (data) => {
+    if (!socket.data.room) return;
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData || !room.duelState) {
+        console.log(`Duel response rejected: Room or duel state not found for room ${socket.data.room}`);
+        return;
+    }
+
+    if (room.duelState.currentChallenger !== socket.data.user) {
+        console.log(`Duel response rejected: ${socket.data.user} tried to respond when it's ${room.duelState.currentChallenger}'s turn.`);
+        return;
+    }
+    
+    if (room.duelState.attacker !== data.opponent && room.duelState.target !== data.opponent) {
+        console.log(`Duel response rejected: Opponent mismatch. Expected ${room.duelState.attacker} or ${room.duelState.target}, got ${data.opponent}`);
+        return;
+    }
+
+    addCardToDiscardPile(room, data.card);
+    console.log(`${socket.data.user} responded to the Duel with a Bang! against ${data.opponent}`);
+
+    const nextChallenger = data.opponent;
+    room.duelState.currentChallenger = nextChallenger;
+    room.duelState.lastBangCard = data.card;
+
+    const nextChallengerSocket = [...io.sockets.sockets.values()].find(
+        s => s.data.user === nextChallenger && s.data.room === socket.data.room
+    );
+
+    if (nextChallengerSocket) {
+        nextChallengerSocket.emit("duel challenge", { challenger: socket.data.user });
+    } else {
+        console.log(`Could not find socket for next Duel challenger ${nextChallenger}.`);
+        console.log(`Duel ended: ${nextChallenger} disconnected or could not be found. ${socket.data.user} wins.`);
+        io.to(socket.data.room).emit("duel ended", { winner: socket.data.user, loser: nextChallenger, reason: "disconnect" });
+        delete room.duelState;
+    }
+  });
+
+  socket.on("duel concede", (data) => {
+    if (!socket.data.room) return;
+    const room = roomsInfo[socket.data.room];
+    if (!room || !room.gameData || !room.duelState) {
+        console.log(`Duel concede rejected: Room or duel state not found for room ${socket.data.room}`);
+        return;
+    }
+
+    if (room.duelState.currentChallenger !== socket.data.user) {
+        console.log(`Duel concede rejected: ${socket.data.user} tried to concede when it's ${room.duelState.currentChallenger}'s turn.`);
+        return;
+    }
+    
+    if (room.duelState.attacker !== data.opponent && room.duelState.target !== data.opponent) {
+        console.log(`Duel concede rejected: Opponent mismatch. Expected ${room.duelState.attacker} or ${room.duelState.target}, got ${data.opponent}`);
+        return;
+    }
+
+    const loserUsername = socket.data.user;
+    const winnerUsername = data.opponent;
+    console.log(`Duel ended: ${loserUsername} conceded to ${winnerUsername}`);
+
+    const loserData = room.gameData.find(player => player.username === loserUsername);
+    if (loserData) {
+        loserData.hp -= 1;
+        console.log(`${loserUsername} took 1 damage from losing Duel, HP now: ${loserData.hp}`);
+
+        io.to(socket.data.room).emit("player damaged", {
+            player: loserUsername,
+            attacker: winnerUsername, 
+            amount: 1,
+            currentHP: loserData.hp
+        });
+
+         if (loserData.hp <= 0) {
+             if (!loserData.eliminated) { 
+                loserData.eliminated = true; 
+                console.log(`[Elimination Check - Duel] Marked ${loserUsername} as eliminated.`);
+                
+                const loserSocket = [...io.sockets.sockets.values()].find(
+                  s => s.data.user === loserUsername && s.data.room === socket.data.room
+                );
+                
+                if (loserSocket) {
+                    console.log(`[Elimination Check - Duel] Found socket for ${loserUsername}, emitting 'discard all cards'.`);
+                    loserSocket.emit("discard all cards");
+                } else {
+                    console.log(`[Elimination Check - Duel] Could not find socket for ${loserUsername} to discard cards.`);
+                }
+                
+                console.log(`[Elimination Check - Duel] Emitting 'player eliminated' for ${loserUsername}.`);
+                io.to(socket.data.room).emit("player eliminated", {
+                  player: loserUsername,
+                  attacker: winnerUsername 
+                });
+                
+                if (loserData.role === "Renegade" && winnerUsername) {
+                  handleRenegadeEliminationReward(room, winnerUsername, loserUsername);
+                }
+            }
+        }
+    }
+
+    io.to(socket.data.room).emit("duel ended", { winner: winnerUsername, loser: loserUsername, reason: "concede" });
+
+    delete room.duelState;
+  });
+
+  // Helper function for Renegade reward (extracted for clarity)
+  function handleRenegadeEliminationReward(room, attackerUsername, eliminatedUsername) {
+    const attackerData = room.gameData.find(p => p.username === attackerUsername);
+    if (attackerData && attackerData.hp > 0) {
+        console.log(`[Reward] ${attackerUsername} eliminated Renegade ${eliminatedUsername}. Granting 3 card reward.`);
+        const attackerSocket = [...io.sockets.sockets.values()].find(
+            s => s.data.user === attackerUsername && s.data.room === room.roomNum
+        );
+
+        if (attackerSocket) {
+            let cardsDrawnCount = 0;
+            for (let i = 0; i < 3; i++) {
+                if (!room.gameDeck || room.gameDeck.length === 0) {
+                    if (room.discardPile && room.discardPile.length > 0) {
+                        console.log(`[Reward Draw] Deck empty, shuffling discard pile with ${room.discardPile.length} cards`);
+                        room.gameDeck = shuffleArray([...room.discardPile]);
+                        room.discardPile = [];
+                        io.to(room.roomNum).emit("discard pile update", { lastCard: null }); 
+                        console.log(`[Reward Draw] New deck created with ${room.gameDeck.length} cards`);
+                    } else {
+                        console.log(`[Reward Draw] No cards left in deck or discard for ${attackerUsername}`);
+                        break; 
+                    }
+                }
+                const drawnCard = room.gameDeck.pop();
+                if (drawnCard) {
+                    console.log(`[Reward Draw] ${attackerUsername} drew card ${drawnCard.name} (${drawnCard.details})`);
+                    attackerSocket.emit("draw card result", {
+                        success: true,
+                        card: drawnCard,
+                        remainingCards: room.gameDeck.length
+                    });
+                    cardsDrawnCount++;
+                }
+            }
+            console.log(`[Reward] Granted ${cardsDrawnCount} cards to ${attackerUsername}.`);
+        } else {
+            console.log(`[Reward] Could not find socket for attacker ${attackerUsername}.`);
+        }
+    } else {
+        console.log(`[Reward] Attacker ${attackerUsername} is eliminated or not found, no reward for eliminating Renegade ${eliminatedUsername}.`);
+    }
+  }
 });
 
 

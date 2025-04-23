@@ -1142,6 +1142,22 @@ function renderPlayerCards(gameData) {
             return;
         }
 
+        if (card.name === "Duel") {
+          targetingMode = true;
+          selectedCard = card;
+          document.body.removeChild(cardMenu);
+          cardSelectionOpen = false;
+
+          const targetInstruction = document.createElement("div");
+          targetInstruction.id = "targetInstruction";
+          targetInstruction.className = "target-instruction";
+          targetInstruction.innerHTML = `<p>Select a player to Duel</p>`;
+          document.body.appendChild(targetInstruction);
+
+          enableDuelTargeting(); 
+          return;
+        }
+
         playerHand.splice(index, 1);
 
         const currentPlayer = players.find(p => p.username === username);
@@ -2906,4 +2922,139 @@ socket.on("dynamite passed", (data) => {
         const drawButton = document.getElementById("drawCard");
         if (drawButton && currentTurn === username) drawButton.disabled = false;
     });
+});
+
+function enableDuelTargeting() {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    if (card.classList.contains('current-player') || card.classList.contains('eliminated')) return;
+    
+    card.classList.add('targetable'); 
+    card.addEventListener('click', handleDuelTargeting);
+  });
+}
+
+function disableDuelTargeting() {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    card.classList.remove('targetable');
+    card.removeEventListener('click', handleDuelTargeting);
+  });
+  const instruction = document.getElementById('targetInstruction');
+  if (instruction) document.body.removeChild(instruction);
+
+  targetingMode = false;
+  selectedCard = null;
+}
+
+function handleDuelTargeting(event) {
+  const targetCard = event.currentTarget;
+
+  const nameElement = targetCard.querySelector('.player-name');
+  const targetUsername = nameElement.textContent.replace(' (Turn)', '');
+
+  const targetPlayer = players.find(p => p.username === targetUsername);
+  const currentPlayer = players.find(p => p.username === username);
+
+  if (!targetPlayer || !currentPlayer) {
+    console.log("Could not find player data for Duel target");
+    disableDuelTargeting();
+    return;
+  }
+
+  console.log(`Targeting ${targetUsername} with Duel!`);
+  const cardIndex = playerHand.findIndex(card =>
+    card.name === selectedCard.name && card.details === selectedCard.details);
+
+  if (cardIndex !== -1) {
+    playerHand.splice(cardIndex, 1);
+    currentPlayer.cardCount = playerHand.length;
+    socket.emit("update card count", username, playerHand.length);
+  }
+
+  socket.emit("play duel", {
+    target: targetUsername,
+    card: selectedCard 
+  });
+
+  disableDuelTargeting();
+  renderPlayerCards(players); 
+}
+
+socket.on("duel challenge", (data) => {
+  console.log(`${data.challenger} challenged you to a Duel!`);
+  showDuelDialog(data.challenger);
+});
+
+function showDuelDialog(challengerUsername) {
+  const existingDialog = document.querySelector('.duel-dialog');
+  if (existingDialog) {
+      document.body.removeChild(existingDialog);
+  }
+
+  const duelDialog = document.createElement("div");
+  duelDialog.className = "duel-dialog missed-dialog";
+  duelDialog.id = `duel-dialog-${Date.now()}`;
+
+  const bangCard = playerHand.find(card => card.name === "Bang!");
+
+  let dialogHTML = `
+    <div class="missed-dialog-content">
+      <h3>Duel!</h3>
+      <p>${challengerUsername} has challenged you!</p>
+      <p>You must respond with a Bang! card or lose 1 HP.</p>
+      <div class="missed-buttons">`;
+
+  if (bangCard) {
+      dialogHTML += `<button id="playBang-${duelDialog.id}">Play Bang!</button>`;
+  }
+  dialogHTML += `<button id="concedeDuel-${duelDialog.id}">Take 1 Damage</button>
+      </div>
+    </div>
+  `;
+
+  duelDialog.innerHTML = dialogHTML;
+  document.body.appendChild(duelDialog);
+
+  setTimeout(() => {
+    const playBangBtn = document.getElementById(`playBang-${duelDialog.id}`);
+    if (playBangBtn) {
+      playBangBtn.addEventListener("click", () => {
+        const bangIndex = playerHand.findIndex(card => card.name === "Bang!");
+        if (bangIndex !== -1) {
+            const usedBang = playerHand.splice(bangIndex, 1)[0];
+            const currentPlayer = players.find(p => p.username === username);
+            if (currentPlayer) {
+              currentPlayer.cardCount = playerHand.length;
+              socket.emit("update card count", username, playerHand.length);
+            }
+            socket.emit("duel response", { 
+                opponent: challengerUsername,
+                card: usedBang 
+            });
+            if (duelDialog.parentNode) document.body.removeChild(duelDialog);
+            renderPlayerCards(players);
+        } else {
+            console.error("Could not find Bang! card in hand after clicking button.");
+        }
+      });
+    }
+
+    const concedeBtn = document.getElementById(`concedeDuel-${duelDialog.id}`);
+    if (concedeBtn) {
+        concedeBtn.addEventListener("click", () => {
+            socket.emit("duel concede", { opponent: challengerUsername });
+            if (duelDialog.parentNode) document.body.removeChild(duelDialog);
+        });
+    }
+  }, 50);
+}
+
+socket.on("duel ended", (data) => {
+    console.log(`Duel ended. ${data.loser} could not play Bang! and lost 1 HP.`);
+});
+
+socket.on("attack missed", (data) => {
+  console.log(`${data.defender} used Missed! to avoid Bang! from ${data.attacker}`);
+  //bro animaci nebo neco
 });
