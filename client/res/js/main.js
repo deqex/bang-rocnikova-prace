@@ -198,16 +198,28 @@ function generateRoles(playerCount) {
 
 // Function to calculate distance between two players based on their positions in the circle
 function calculateDistance(playerA, playerB, totalPlayers) {
-  const posA = playerA.position;
-  const posB = playerB.position;
+  // Filter out eliminated players to calculate distance based on active players
+  const activePlayers = players.filter(p => p.hp > 0);
+  const totalActivePlayers = activePlayers.length;
 
-  // Calculate the shortest path around the circle
-  const clockwise = Math.abs(posA - posB);
-  const counterClockwise = totalPlayers - clockwise;
+  // Find the positions of playerA and playerB within the active players array
+  const posA_active = activePlayers.findIndex(p => p.username === playerA.username);
+  const posB_active = activePlayers.findIndex(p => p.username === playerB.username);
+
+  // If either player is not found among active players (shouldn't happen for distance calc), return a large number or handle error
+  if (posA_active === -1 || posB_active === -1) {
+    console.error("Error calculating distance: One or both players not found in active players list.");
+    return Infinity; // Or handle appropriately
+  }
+
+  // Calculate the shortest path around the circle of active players
+  const clockwise = Math.abs(posA_active - posB_active);
+  const counterClockwise = totalActivePlayers - clockwise;
 
   // Get the minimum distance
   let distance = Math.min(clockwise, counterClockwise);
 
+  // Apply distance modifiers
   if (playerB.attributes && playerB.attributes.includes("Mustang")) {
     distance += 1;
   }
@@ -216,10 +228,13 @@ function calculateDistance(playerA, playerB, totalPlayers) {
     distance += 1;
   }
 
+  // Apply playerA's range modifiers
   if (playerA.champion === "Rose Doolan") {
-    // Rose Doolan sees all players at a distance decreased by 1
-    distance = Math.max(1, distance - 1);
+    distance = Math.max(1, distance - 1); // Rose Doolan sees others closer
   }
+  
+  // Scope increases the *attacker's* reach, handled separately during targeting checks
+  // Volcanic doesn't affect distance, it affects Bang! usage
 
   return distance;
 }

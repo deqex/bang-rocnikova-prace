@@ -946,27 +946,26 @@ io.on("connection", (socket) => {
     addCardToDiscardPile(room, data.card);
     console.log(`${socket.data.user} played General Store in room ${socket.data.room}`);
 
-    const playerCount = room.gameData.length;
+    const activePlayers = room.gameData.filter(p => p.hp > 0);
+    const activePlayerCount = activePlayers.length;
 
     const availableCards = [];
+    console.log(`[General Store] Drawing ${activePlayerCount} cards for ${activePlayerCount} active players.`);
 
-    for (let i = 0; i < playerCount && room.gameDeck.length > 0; i++) { //shoutout stepan
+    for (let i = 0; i < activePlayerCount && room.gameDeck.length > 0; i++) { 
       availableCards.push(room.gameDeck.pop());
     }
 
     console.log(`${socket.data.user} played General Store. Drew ${availableCards.length} cards.`);
 
-    // Determine the selection order based on positions
-    // First the player who played the card, then clockwise
     const playingPlayerIndex = room.gameData.findIndex(player => player.username === socket.data.user);
     let selectionOrder = [];
+    const totalPlayers = room.gameData.length; 
 
     if (playingPlayerIndex !== -1) {
-      // Start with the player who played the card
-      for (let i = 0; i < playerCount; i++) {
-        const playerIndex = (playingPlayerIndex + i) % playerCount;
+      for (let i = 0; i < totalPlayers; i++) { 
+        const playerIndex = (playingPlayerIndex + i) % totalPlayers;
         const player = room.gameData[playerIndex];
-        // Skip eliminated players
         if (player.hp > 0) {
           selectionOrder.push(player.username);
         }
