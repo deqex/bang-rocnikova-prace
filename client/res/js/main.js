@@ -1270,20 +1270,46 @@ socket.on("get rooms", (data) => {
 });
 
 socket.on("update turn", (playerUsername) => {
+  console.log(`[Event] Received 'update turn' for ${playerUsername}. Current client user: ${username}`);
   currentTurn = playerUsername;
+  // Reset dynamite check flag when a turn *officially* starts (either yours after checks, or someone else's)
+  // This event means the server confirmed no Dynamite check is needed *before* the turn starts.
+  dynamiteCheckPending = false; 
+
+  // Re-render cards and update button states based on the new currentTurn
   if (players.length > 0) {
-    renderPlayerCards(players);
+    renderPlayerCards(players); // This handles basic button enabling/disabling based on whose turn it is.
   }
 
   if (currentTurn === username) {
-    console.log("It's your turn!");
-    numberOfDrawnCards = 0;
+    console.log("[Turn Update] It's my turn!");
+    numberOfDrawnCards = 0; // Reset draw count for the new turn
 
     const currentPlayer = players.find(p => p.username === username);
 
+    // Server already determined no Dynamite check is needed by sending 'update turn'.
+    // Now, check if this player is in Jail.
     if (currentPlayer && currentPlayer.attributes && currentPlayer.attributes.includes("Jail")) {
-        socket.emit("jail turn start");
+        console.log("[Turn Update] In Jail. Emitting 'jail turn start'.");
+        // Disable draw button explicitly before emitting jail check
+        const drawButton = document.getElementById("drawCard");
+        if (drawButton) drawButton.disabled = true;
+        socket.emit("jail turn start"); 
+    } else {
+        console.log("[Turn Update] Not in Jail. Turn proceeds normally.");
+        // Draw button should already be enabled by renderPlayerCards because it's our turn.
+        // Just ensure it is, in case renderPlayerCards logic changes or was disabled by a previous check.
+        const drawButton = document.getElementById("drawCard");
+        if (drawButton) {
+            console.log("[Turn Update] Enabling draw card button.");
+            drawButton.disabled = false;
+        } else {
+             console.log("[Turn Update] Draw card button not found.");
+        }
     }
+  } else {
+      // Not my turn. Buttons should be disabled by renderPlayerCards.
+      console.log(`[Turn Update] Turn updated to ${playerUsername}. Not my turn.`);
   }
 });
 
@@ -2692,9 +2718,18 @@ socket.on("jail result", (data) => {
   if (data.escaped) {
     resultMessage.textContent = "It's Hearts! You escape from Jail and can continue your turn.";
     resultMessage.style.color = '#4CAF50';
+    // Re-enable draw button as the turn continues
+    const drawButton = document.getElementById("drawCard");
+    if (drawButton) {
+        console.log("[Jail Result] Escaped! Enabling draw card button.");
+        drawButton.disabled = false;
+    } else {
+        console.log("[Jail Result] Escaped! Draw card button not found.");
+    }
   } else {
     resultMessage.textContent = "Not Hearts. Your turn is skipped.";
     resultMessage.style.color = '#F44336';
+    // Draw button remains disabled as turn is skipped.
   }
   
   content.appendChild(resultMessage);
@@ -2711,13 +2746,14 @@ socket.on("jail result", (data) => {
     document.body.removeChild(jailDialog);
   });
   
-  if (data.escaped) {
-    setTimeout(() => {
-      if (jailDialog.parentNode) {
-        document.body.removeChild(jailDialog);
-      }
-    }, 3000);
-  }
+  // Removed automatic close on escape
+  // if (data.escaped) {
+  //   setTimeout(() => {
+  //     if (jailDialog.parentNode) {
+  //       document.body.removeChild(jailDialog);
+  //     }
+  //   }, 3000);
+  // }
 });
 
 socket.on("discard pile top", (data) => {

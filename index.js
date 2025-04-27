@@ -470,7 +470,7 @@ io.on("connection", (socket) => {
     }
 
     if (playerData.champion === "Suzy Laffayete") {
-      console.log("yo")
+      console.log("gurt: yo")
     }
 
     if (room.currentTurn !== socket.data.user) {
