@@ -794,6 +794,12 @@ function renderPlayerCards(gameData) {
           return;
         }
 
+        if (card.name === "Missed!") {
+            console.log("Missed! cannot be played proactively. It's used automatically when attacked.");
+             alert("Missed! cannot be played. It is used when attacked.");
+            return; 
+        }
+
         if (card.name === "Bang!") {
           targetingMode = true;
           selectedCard = card;
