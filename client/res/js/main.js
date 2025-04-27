@@ -1000,6 +1000,12 @@ function renderPlayerCards(gameData) {
         if (card.name === "Beer") {
           const currentPlayer = players.find(p => p.username === username);
           if (currentPlayer) {
+            if (currentPlayer.hp >= currentPlayer.maxHP) {
+              console.log("Cannot play Beer: HP is already full.");
+              alert("Cannot play Beer: HP is already full.");
+              return; 
+            }
+
             playerHand.splice(index, 1);
             discardCard(card); 
             currentPlayer.cardCount = playerHand.length;
