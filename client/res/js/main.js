@@ -789,18 +789,23 @@ function renderPlayerCards(gameData) {
       cardElement.addEventListener("click", () => {
         console.log(`Selected card: ${card.name} (${card.details})`);
 
+        if (targetingMode) {
+            disableAllTargetingModes();
+        }
+
         if (currentTurn !== username) {
           console.log("Not your turn");
           return;
         }
 
         if (card.name === "Missed!") {
-            console.log("Missed! cannot be played proactively. It's used automatically when attacked.");
-             alert("Missed! cannot be played. It is used when attacked.");
-            return; 
+              console.log("Missed! cannot be played proactively. It's used automatically when attacked.");
+              alert("Missed! cannot be played. It is used when attacked.");
+             return; 
         }
 
         if (card.name === "Bang!") {
+          disableAllTargetingModes(); 
           targetingMode = true;
           selectedCard = card;
           document.body.removeChild(cardMenu);
@@ -822,6 +827,7 @@ function renderPlayerCards(gameData) {
         }
 
         if (card.name === "Cat Balou") {
+          disableAllTargetingModes();
           targetingMode = true;
           selectedCard = card;
           document.body.removeChild(cardMenu);
@@ -838,6 +844,7 @@ function renderPlayerCards(gameData) {
         }
 
         if (card.name === "Panic!") {
+          disableAllTargetingModes();
           targetingMode = true;
           selectedCard = card;
           document.body.removeChild(cardMenu);
@@ -1124,6 +1131,7 @@ function renderPlayerCards(gameData) {
         }
 
         if (card.name === "Jail") {
+          disableAllTargetingModes();
           targetingMode = true;
           selectedCard = card;
           document.body.removeChild(cardMenu);
@@ -1155,6 +1163,7 @@ function renderPlayerCards(gameData) {
         }
 
         if (card.name === "Duel") {
+          disableAllTargetingModes();
           targetingMode = true;
           selectedCard = card;
           document.body.removeChild(cardMenu);
@@ -1191,14 +1200,37 @@ function renderPlayerCards(gameData) {
     document.body.appendChild(cardMenu);
 
     document.getElementById("closeCardMenu").addEventListener("click", () => {
+      if (targetingMode) {
+          disableAllTargetingModes(); 
+      }
       document.body.removeChild(cardMenu);
       cardSelectionOpen = false;
     });
   });
 
 
+function disableAllTargetingModes() {
+    disableTargeting();       
+    disableCatBalouTargeting(); 
+    disablePanicTargeting();    
+    disableJailTargeting();     
+    disableDuelTargeting();     
+
+    targetingMode = false; 
+    selectedCard = null; 
+
+    const instruction = document.getElementById('targetInstruction');
+    if (instruction && instruction.parentNode === document.body) {
+        console.log("Removing target instruction via disableAllTargetingModes");
+        document.body.removeChild(instruction);
+    } 
+}
 
   document.getElementById("endTurn").addEventListener("click", () => {
+    if (targetingMode) {
+        disableAllTargetingModes();
+    }
+
     numberOfDrawnCards = 0;
     if (currentTurn !== username) {
       console.log("Not your turn");
