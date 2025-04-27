@@ -1,3 +1,158 @@
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8); 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; 
+  padding: 20px; 
+  box-sizing: border-box;
+}
+
+.dialog-content {
+  background-color: white;
+  padding: 25px;
+  border-radius: 10px;
+  max-width: 550px; 
+  width: 100%; 
+  text-align: center;
+  position: relative;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  max-height: 90vh; 
+  overflow-y: auto; 
+}
+
+.dialog-content h3 {
+  margin: 0 0 15px;
+  font-size: 22px; 
+  color: #333;
+}
+
+.dialog-content p {
+  color: #444;
+  margin: 10px 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px; 
+  margin-top: 25px;
+  flex-wrap: wrap; 
+}
+
+.dialog-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  min-width: 120px; 
+  text-align: center;
+}
+
+.dialog-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.dialog-button:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+  box-shadow: none;
+}
+
+.dialog-button--confirm {
+  background-color: #4CAF50; 
+  color: white;
+}
+.dialog-button--confirm:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.dialog-button--danger {
+  background-color: #f44336; 
+  color: white;
+}
+.dialog-button--danger:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+.dialog-button--primary {
+  background-color: #3f51b5; 
+  color: white;
+}
+.dialog-button--primary:hover:not(:disabled) {
+  background-color: #303f9f;
+}
+
+.dialog-button--warning {
+  background-color: #ff9800; 
+  color: white;
+}
+.dialog-button--warning:hover:not(:disabled) {
+  background-color: #f57c00;
+}
+
+.dialog-button--info {
+  background-color: #2196F3; 
+  color: white;
+}
+.dialog-button--info:hover:not(:disabled) {
+  background-color: #1976D2;
+}
+
+.dialog-button--secondary {
+  background-color: #9e9e9e; 
+  color: white;
+}
+.dialog-button--secondary:hover:not(:disabled) {
+  background-color: #757575;
+}
+
+.drawn-card-display {
+  text-align: center;
+  margin: 20px 0;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+}
+
+.drawn-card-display p {
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: #555;
+}
+
+.drawn-card-display .card-item--dialog {
+  /* margin: 0 auto; */ 
+}
+
+.drawn-card-display .card-item {
+  margin: 0 auto; 
+}
+
+.dialog-result-message {
+  margin-top: 20px;
+  font-weight: bold;
+  font-size: 18px;
+}
+
 .kit-carlson-dialog {
   position: fixed;
   top: 0;
@@ -400,89 +555,140 @@
   background-color: #45a049;
 }
 
+/* Uno-style Card Selection - Updated */
 .card-selection-menu {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.85);
-  border-radius: 10px;
-  padding: 20px;
+  /* top: 50%; */
+  /* left: 50%; */
+  /* transform: translate(-50%, -50%); */
+  /* bottom: 120px; */ 
+  bottom: 120px; /* Keep moved up for now */
+  left: 0; /* Align to the left */
+  width: 100%; /* Full width */
+  /* background-color: rgba(0, 0, 0, 0.85); Removed dark overlay */
+  background-color: transparent; /* Make background transparent */
+  border-radius: 0; /* Remove rounding */
+  padding: 10px 0; /* Adjusted vertical padding */
   z-index: 1000;
-  width: 80%;
-  max-width: 800px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  /* max-width: 800px; No max width */
+  /* max-height: 320px; */ 
+  max-height: 520px; /* Increased max height significantly */
+  display: flex; /* Use flex for centering container */
+  justify-content: center; /* Center the card container */
+  /* flex-direction: column; Remove */
+  /* box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); Remove shadow */
+  pointer-events: none; /* Allow clicks through the menu background */
+  overflow: visible; /* Explicitly allow overflow for the menu itself */
 }
 
 .card-menu-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #444;
-  padding-bottom: 10px;
-}
-
-.card-menu-header h2 {
-  color: white;
-  margin: 0;
-}
-
-#closeCardMenu {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
+  display: none; /* Hide the old header */
 }
 
 .card-container {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 15px;
-  overflow-y: auto;
-  padding: 10px 0;
+  /* flex-wrap: wrap; */
+  flex-wrap: nowrap; /* Prevent wrapping */
+  /* justify-content: center; */
+  justify-content: flex-start; /* Align cards to the start */
+  /* gap: 15px; Use margin for overlap */
+  overflow-x: auto; /* Allow horizontal scrolling */
+  /* overflow-y: hidden; */ /* Remove vertical clipping */
+  overflow-y: visible; /* Allow vertical overflow */
+  padding: 10px 20px; /* Padding inside the scrollable area */
+  max-width: 90%; /* Limit container width slightly */
+  /* background-color: rgba(0, 0, 0, 0.5); */ /* Remove background */
+  background-color: transparent;
+  border-radius: 25px; /* Rounded corners for the container */
+  /* border: 1px solid rgba(255, 255, 255, 0.2); */ /* Remove border */
+  pointer-events: auto; /* Enable clicks within the container */
+  align-items: flex-end; /* Align items to the bottom of the container */
+  /* min-height: 400px; */
+  min-height: 500px; /* Keep container unreasonably tall */
+
+  /* Hide scrollbar for Webkit browsers */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
-.card-item {
-  width: 120px; 
-  height: 180px; 
-  border-radius: 8px;
-  justify-content: center;
-  align-items: center;
+/* Specificity needed to override potential general styles */
+.card-selection-menu .card-container .card-item {
+  /* width: 140px; */ 
+  width: 210px; /* ~1.5x card width */
+  /* height: 210px; */
+  height: 315px; /* ~1.5x card height */
+  border-radius: 10px; /* Adjusted radius */
+  /* justify-content: center; */
+  /* align-items: center; */
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s;
+  /* box-shadow: 0 3px 7px rgba(0, 0, 0, 0.4); */ /* Remove base shadow */
+  transition: transform 0.2s ease-out, margin-left 0.2s ease-out, z-index 0.1s ease-out; /* Adjusted transition */
   padding: 0; 
   text-align: center;
-  overflow: hidden; 
+  overflow: visible; /* Allow hover transform to show fully */
   position: relative; 
+  /* margin-left: -105px; */
+  margin-left: -105px; /* Adjusted overlap for larger cards (50%) */
+  flex-shrink: 0; /* Prevent cards from shrinking */
+  z-index: 1; /* Base stacking context */
+  background-color: white; /* Ensure cards have a solid background */
 }
 
-.card-item:hover {
-  transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+/* Apply border-radius to the image inside the card item */
+.card-selection-menu .card-container .card-item img {
+  display: block; /* Remove potential extra space below image */
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Or cover, depending on desired image scaling */
+  border-radius: 50px; /* Match the parent's border-radius */
+  /* Add inset shadow - Adjusted for full edge coverage and depth */
+}
+
+/* Remove overlap margin for the first card */
+.card-selection-menu .card-container .card-item:first-child {
+  margin-left: 0;
+}
+
+.card-selection-menu .card-container .card-item:hover {
+  /* Combine transforms: scale, lift up, and shift right */
+  transform: scale(1.15) translateY(-40px) translateX(15px);
+  /* box-shadow: 0 10px 25px rgba(0,0,0,0.5); */ /* Remove hover shadow */
+  z-index: 10; /* Bring hovered card to front */
+  /* margin-left: -105px; */ 
+  margin-left: -105px; /* Maintain adjusted overlap */
+}
+
+/* Keep margin adjustment for the card *after* the hovered one */
+.card-selection-menu .card-container .card-item:hover + .card-item {
+    margin-left: 30px; /* Keep spacing next to hovered card */
+}
+
+/* Ensure the first card gets the same hover effect */
+/* We still need to adjust its transform on hover */
+.card-selection-menu .card-container .card-item:first-child:hover {
+  margin-left: 0; 
+  transform: scale(1.15) translateY(-40px) translateX(0px); /* Don't shift first card right */
 }
 
 .card-details-overlay {
   position: absolute;
-  bottom: 5px; 
-  left: 5px;   
-  width: 30px;
-  height: 30px; 
+  bottom: 8px; /* Adjusted position */
+  left: 8px;   
+  width: 40px; /* Increased overlay size */
+  height: 40px; 
   background-color: black;
   color: white;
   border-radius: 50%; 
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 12px; 
+  font-size: 16px; /* Increased font size */
   font-weight: bold;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.5); 
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5); 
   line-height: 1; 
 }
 
@@ -529,49 +735,6 @@
   background-color: #7a3c78;
 }
 
-.panic-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.panic-dialog-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 400px;
-  text-align: center;
-}
-
-.panic-buttons, .panic-attributes {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.panic-buttons button, .attribute-button {
-  padding: 10px 15px;
-  cursor: pointer;
-  border: none;
-  border-radius: 5px;
-  font-weight: bold;
-  background-color: #ff5722;
-  color: white;
-  transition: background-color 0.2s;
-}
-
-.panic-buttons button:hover, .attribute-button:hover {
-  background-color: #e64a19;
-}
-
 .panic-notification {
   position: fixed;
   top: 50%;
@@ -590,30 +753,6 @@
   20% { opacity: 1; }
   80% { opacity: 1; }
   100% { opacity: 0; }
-}
-
-.general-store-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.general-store-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 800px;
-  width: 90%;
-  text-align: center;
-  max-height: 80vh;
-  overflow-y: auto;
 }
 
 .general-store-cards {
@@ -682,70 +821,6 @@
   font-size: 18px;
 }
 
-.jail-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.jail-dialog-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.jail-buttons {
-  margin-top: 20px;
-}
-
-.jail-buttons button {
-  padding: 10px 15px;
-  cursor: pointer;
-  border: none;
-  border-radius: 5px;
-  font-weight: bold;
-  background-color: #3f51b5;
-  color: white;
-}
-
-.jail-buttons button:hover {
-  background-color: #303f9f;
-}
-
-.jail-buttons button:disabled {
-  background-color: #9e9e9e;
-  cursor: not-allowed;
-}
-
-.drawn-jail-card {
-  margin-top: 15px;
-  padding: 10px;
-  background-color: #f5f5f5;
-  border-radius: 5px;
-  text-align: center;
-}
-
-.jail-result {
-  font-weight: bold;
-  margin-top: 15px;
-  font-size: 18px;
-}
-
-.dismiss-jail {
-  margin-top: 15px;
-  padding: 8px 20px;
-}
-
 .pedro-dialog {
   position: fixed;
   top: 0;
@@ -792,7 +867,7 @@
 }
 
 .pedro-buttons button:hover {
-  background-color: #5d4037;
+  background-color: #f57c00;
 }
 
 #drawFromDiscard {
@@ -805,7 +880,7 @@
 
 /* AI START - Dynamite Dialog Styles */
 /* Reuse overlay style from other dialogs */
-.dynamite-dialog, .missed-dialog, .cat-balou-dialog, .panic-dialog, .jail-dialog, .pedro-dialog, .kit-carlson-dialog, .general-store-dialog {
+.missed-dialog, .cat-balou-dialog, .panic-dialog, .jail-dialog, .pedro-dialog, .kit-carlson-dialog {
   position: fixed;
   top: 0;
   left: 0;
@@ -819,7 +894,7 @@
 }
 
 /* Reuse content box style */
-.dynamite-dialog-content, .missed-dialog-content, .cat-balou-dialog-content, .panic-dialog-content, .jail-dialog-content, .pedro-dialog-content, .kit-carlson-content, .general-store-content {
+.missed-dialog-content, .cat-balou-dialog-content, .panic-dialog-content, .jail-dialog-content, .pedro-dialog-content, .kit-carlson-content {
   background-color: white;
   padding: 25px; /* Slightly more padding */
   border-radius: 10px;
@@ -830,103 +905,16 @@
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* AI START - Ensure buttons are at the bottom */
-.dynamite-dialog-content {
-    display: flex;
-    flex-direction: column;
-    min-height: 300px; /* Ensure minimum height for button spacing */
-}
-/* AI END */
-
-.dynamite-dialog-content h3 {
-  color: #cc0000; /* Reddish for danger */
-  margin: 0 0 15px;
-  font-size: 24px;
-}
-
-.dynamite-dialog-content p {
-  color: #444;
-  margin: 10px 0;
-  font-size: 16px;
-  line-height: 1.5;
-}
 
 /* Reuse button container style */
-.dynamite-buttons, .missed-buttons, .cat-balou-buttons, .panic-buttons, .jail-buttons, .pedro-buttons {
+.missed-buttons, .cat-balou-buttons, .panic-buttons, .jail-buttons, .pedro-buttons {
   display: flex;
   justify-content: center;
   gap: 20px; /* More gap */
   margin-top: 25px; /* More margin */
 }
 
-/* AI START - Push buttons to bottom */
-.dynamite-buttons {
-    margin-top: auto; /* Pushes the button container to the bottom */
-    padding-top: 20px; /* Add some space above the buttons */
-}
-/* AI END */
 
-/* Base style for Dynamite buttons */
-.dynamite-buttons button {
-  padding: 12px 25px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  transition: all 0.2s ease;
-  min-width: 150px; /* Ensure buttons have good width */
-}
-
-.dynamite-buttons button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.dynamite-buttons button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-/* Specific style for the draw button */
-#drawDynamiteCard {
-  background-color: #e67e22; /* Orange */
-  color: white;
-}
-
-#drawDynamiteCard:hover:not(:disabled) {
-  background-color: #d35400; /* Darker Orange */
-}
-
-/* Specific style for dismiss button (like other dialog OK buttons) */
-.dismiss-dynamite {
-  background-color: #2ecc71; /* Green */
-  color: white;
-}
-
-.dismiss-dynamite:hover {
-  background-color: #27ae60; /* Darker Green */
-}
-
-/* Style for displaying the drawn card (like jail) */
-.drawn-dynamite-card {
-  text-align: center;
-  margin: 20px 0; /* More margin */
-}
-
-.drawn-dynamite-card p {
-  margin-bottom: 10px;
-  font-weight: bold;
-  color: #555;
-}
-
-/* Style for the result message (like jail) */
-.dynamite-result {
-  margin-top: 20px; /* More margin */
-  font-weight: bold;
-  font-size: 18px; /* Larger font */
-}
 
 /* Dynamite Pass Notification Style (similar to panic-notification) */
 .dynamite-pass-notification {
@@ -949,4 +937,108 @@
   background-color: #555;
   color: white;
   border: 1px solid #333;
+}
+
+.dialog-content .card-item--dialog {
+  width: 100px; 
+  height: 150px; 
+  margin-left: 0; 
+  margin-right: 5px; 
+  margin-bottom: 5px; 
+  flex-shrink: 0;
+  cursor: default; 
+  transform: none; 
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+  overflow: hidden; 
+}
+
+.dialog-content .card-item--dialog:hover {
+  transform: none;
+}
+
+.dialog-content .card-item--dialog img {
+  border-radius: 6px; 
+}
+
+
+.dialog-content .card-item--dialog .card-details-overlay {
+  width: 25px;
+  height: 25px;
+  font-size: 11px;
+  bottom: 4px;
+  left: 4px;
+}
+
+.card-selection-menu .card-container .card-item img {
+  display: block; 
+  width: 100%;
+  height: 100%;
+  object-fit: contain; 
+  border-radius: 50px; 
+
+}
+
+* {
+  font-family: 'Comic Sans MS', bold;
+}
+body {
+  background-image: url("../img/bangmenu.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  margin: 0;
+  padding: 0;
+}
+
+#usernameContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.titleText {
+  font-size: 5rem;
+  color: red;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  -webkit-text-stroke-width: 3px;
+  -webkit-text-stroke-color: black;
+  margin: 0;
+  text-align: center;
+  padding-top: 2rem;
+}
+
+.titleSubtext {
+  font-size: 1.5rem;
+  color: red;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  -webkit-text-stroke-width: 1px;
+  -webkit-text-stroke-color: black;
+  margin-top: 0;
+  text-align: center;
+}
+
+.roomsContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.generic-input {
+  border-radius: 10px;
+  height: 2rem;
+  border: 4px  black solid;
+  padding: 0.5rem;
+  font-weight: 700;
+}
+.generic-menu-button {
+  border-radius: 10px;
+  height: 3rem;
+  border: 4px  black solid;
+  background-color: rgb(255, 0, 0);
+  padding: 0.5rem;
 }

@@ -8,12 +8,21 @@
   </head>
   <body>
     <div class="container">
+      <div id="title">
+        <h1 class="titleText">Beng!</h1>
+        <p class="titleSubtext">not affiliated with Bang!</p>
+      </div>
+      <div class="roomsContainer">
       <div id="availableRooms">
           <p>Available rooms</p>
       </div>
-      <p id="roomInfo">Room: </p>
-      <input type="text" id="nameInput" placeholder="Enter username">
-      <button id="enterUsername">Enter username</button>
+    </div>
+      <p id="roomInfo" style="text-align: center;">Room: </p>
+  
+      <div id="usernameContainer">
+        <input class="generic-input" type="text" id="nameInput" placeholder="Enter username">
+        <button class="generic-menu-button" id="enterUsername">Enter username</button>
+      </div>
 
       <input type="text" id="roomInput" placeholder="Enter room">
       <button id="enterRoom">Enter room</button>
@@ -27,7 +36,7 @@
       </select>
 
       <label class="switchlabel" id="switchlabel">
-        <input type="checkbox" id="isPrivate" onclick="isPrivate()"> <span>private</span> <!-- ten onclick neni moc sigma myslim jeste zjistim-->
+        <input type="checkbox" id="isPrivate" onclick="isPrivate()"> <span>private</span> <!-- ten onclick neni moc sigma myslim jeste zjistim update: je den pred odevzdanim a nic jsem nezjistil-->
        </label> 
       
       <br>

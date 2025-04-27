@@ -266,7 +266,7 @@ function generateGameData(players) {
 
   const bangCards = [ // generovano pomoci ai abych nemusel opisovat s trochou opravy struktura tvorena mnou
     { name: "Barrel", details: "Q♠" },
-    { name: "Barrel", details: "K♠" },
+    { name: "Barrel", details: "K♠" },    
     { name: "Dynamite", details: "2♥" },
     { name: "Jail", details: "J♠" },
     { name: "Jail", details: "4♥" },
@@ -1513,38 +1513,38 @@ socket.on("bang attack", (data) => {
 
 function showMissedDialog(attacker, missedCard) {
   // First, check if another dialog is already open and remove it
-  const existingDialog = document.querySelector('.missed-dialog');
+  const existingDialog = document.querySelector('.dialog-overlay'); // Use generic selector
   if (existingDialog) {
     document.body.removeChild(existingDialog);
   }
 
   const missedDialog = document.createElement("div");
-  missedDialog.className = "missed-dialog";
-  missedDialog.id = `missed-dialog-${Date.now()}`; // Add unique ID to prevent conflicts
+  // missedDialog.className = "missed-dialog"; // OLD
+  missedDialog.className = "dialog-overlay"; // NEW
+  missedDialog.id = `missed-dialog-${Date.now()}`; 
 
   const currentPlayer = players.find(p => p.username === username);
 
-  //fakt jsem se snazil to udelat bez ai ale ta if funkce mi nefungovala, takze to udelalo takhle pres dialogHTML
   let dialogHTML = `
-    <div class="missed-dialog-content">
+    <div class="dialog-content"> 
       <h3>${attacker} attacked you with Bang!</h3>
-      <p>You have a Missed! card. Do you want to use it?</p>
-      <div class="missed-buttons">
-      <button id="takeDamage-${missedDialog.id}">No, take damage</button>`;
+      <p>Do you want to react?</p> 
+      <div class="dialog-buttons"> 
+      <button id="takeDamage-${missedDialog.id}" class="dialog-button dialog-button--danger">No, take damage</button>`;
   
   if (missedCard) {
     dialogHTML +=`
-          <button id="useMissed-${missedDialog.id}">Yes, use Missed!</button>`;
+          <button id="useMissed-${missedDialog.id}" class="dialog-button dialog-button--confirm">Yes, use Missed!</button>`;
   }
         
   if (currentPlayer.attributes && currentPlayer.attributes.includes("Barrel")) {
     dialogHTML += `
-        <button id="useBarrel-${missedDialog.id}">Use Barrel</button>`;
+        <button id="useBarrel-${missedDialog.id}" class="dialog-button dialog-button--info">Use Barrel</button>`;
   }
 
   if (currentPlayer.champion === "Jourdonnais") {  
     dialogHTML += `
-        <button id="usePassive-${missedDialog.id}">Use passive</button>`;
+        <button id="usePassive-${missedDialog.id}" class="dialog-button dialog-button--info">Use passive</button>`;
   }
   dialogHTML += `
       </div>
@@ -1554,7 +1554,7 @@ function showMissedDialog(attacker, missedCard) {
   missedDialog.innerHTML = dialogHTML;
   document.body.appendChild(missedDialog);
 
-  // Use a small timeout to ensure the DOM has updated before attaching events
+  // ... rest of the event listener logic remains the same, using the IDs ...
   setTimeout(() => {
     // Check if missedCard exists before trying to attach event
     if (missedCard) {
@@ -1664,7 +1664,7 @@ function showMissedDialog(attacker, missedCard) {
         });
       }
     }
-  }, 50); // Small delay to ensure DOM is ready
+  }, 50); 
 }
 
 socket.on("attack missed", (data) => {
@@ -1771,22 +1771,23 @@ socket.on("indians attack", (data) => {
 
 function showIndiansDialog(attacker, bangCard) {
   // First, check if another dialog is already open and remove it
-  const existingDialog = document.querySelector('.missed-dialog');
+  const existingDialog = document.querySelector('.dialog-overlay'); // Use generic selector
   if (existingDialog) {
     document.body.removeChild(existingDialog);
   }
 
   const indiansDialog = document.createElement("div");
-  indiansDialog.className = "missed-dialog"; // Reusing the missed dialog styling
-  indiansDialog.id = `indians-dialog-${Date.now()}`; // Add unique ID to prevent conflicts
+  // indiansDialog.className = "missed-dialog"; // OLD
+  indiansDialog.className = "dialog-overlay"; // NEW
+  indiansDialog.id = `indians-dialog-${Date.now()}`; 
   
   const dialogHTML = `
-    <div class="missed-dialog-content">
+    <div class="dialog-content"> 
       <h3>${attacker} played Indians!</h3>
       <p>You can discard a Bang! card to defend yourself.</p>
-      <div class="missed-buttons">
-        <button id="takeDamage-${indiansDialog.id}">Take damage</button>
-        ${bangCard ? `<button id="useBang-${indiansDialog.id}">Use Bang!</button>` : ''}
+      <div class="dialog-buttons"> 
+        <button id="takeDamage-${indiansDialog.id}" class="dialog-button dialog-button--danger">Take damage</button>
+        ${bangCard ? `<button id="useBang-${indiansDialog.id}" class="dialog-button dialog-button--confirm">Use Bang!</button>` : ''}
       </div>
     </div>
   `;
@@ -1794,16 +1795,17 @@ function showIndiansDialog(attacker, bangCard) {
   indiansDialog.innerHTML = dialogHTML;
   document.body.appendChild(indiansDialog);
   
-  // Use a small timeout to ensure the DOM has updated before attaching events
+  // ... rest of the event listener logic remains the same, using the IDs ...
   setTimeout(() => {
     if (bangCard) {
       const useBangBtn = document.getElementById(`useBang-${indiansDialog.id}`);
       if (useBangBtn) {
         useBangBtn.addEventListener("click", () => {
+         // Restore the original logic here
           const cardIndex = playerHand.findIndex(card => card.name === bangCard.name && card.details === bangCard.details);
           if (cardIndex !== -1) {
             playerHand.splice(cardIndex, 1);
-            discardCard(bangCard);
+            discardCard(bangCard); // Ensure card is discarded
             const currentPlayer = players.find(p => p.username === username);
             if (currentPlayer) {
               currentPlayer.cardCount = playerHand.length;
@@ -1820,7 +1822,7 @@ function showIndiansDialog(attacker, bangCard) {
           if (indiansDialog.parentNode) {
             document.body.removeChild(indiansDialog);
           }
-          renderPlayerCards(players);
+          renderPlayerCards(players); // Re-render after action
         });
       }
     }
@@ -1828,6 +1830,7 @@ function showIndiansDialog(attacker, bangCard) {
     const takeDamageBtn = document.getElementById(`takeDamage-${indiansDialog.id}`);
     if (takeDamageBtn) {
       takeDamageBtn.addEventListener("click", () => {
+        // This logic should still be correct
         socket.emit("take damage", {
           amount: 1,
           attacker: attacker
@@ -1839,7 +1842,7 @@ function showIndiansDialog(attacker, bangCard) {
         }
       });
     }
-  }, 50); // Small delay to ensure DOM is ready
+  }, 50); 
 }
 
 socket.on("indians defended", (data) => {
@@ -1946,18 +1949,18 @@ function showCatBalouOptionsDialog(targetUsername) {
   const cardReference = {...selectedCard};
   
   const optionsDialog = document.createElement("div");
-  optionsDialog.className = "cat-balou-dialog";
+  // optionsDialog.className = "cat-balou-dialog"; // OLD
+  optionsDialog.className = "dialog-overlay"; // NEW
   
   let dialogContent = `
-    <div class="cat-balou-dialog-content">
+    <div class="dialog-content"> 
       <h3>Cat Balou - Choose Action</h3>
       <p>What would you like to do to ${targetUsername}?</p>
-      <div class="cat-balou-buttons">
-        <button id="randomCard">Take a Random Card</button>`;
+      <div class="dialog-buttons"> 
+        <button id="randomCard" class="dialog-button dialog-button--secondary">Take a Random Card</button>`;
   
-  // Only show attribute option if the target has attributes
   if (targetPlayer.attributes && targetPlayer.attributes.length > 0) {
-    dialogContent += `<button id="chooseAttribute">Remove an Attribute</button>`;
+    dialogContent += `<button id="chooseAttribute" class="dialog-button dialog-button--secondary">Remove an Attribute</button>`;
   }
   
   dialogContent += `</div></div>`;
@@ -1986,16 +1989,18 @@ function showCatBalouOptionsDialog(targetUsername) {
 
 function showAttributeSelectionDialog(targetUsername, attributes, cardReference) {
   const attributeDialog = document.createElement("div");
-  attributeDialog.className = "cat-balou-dialog";
+  // attributeDialog.className = "cat-balou-dialog"; // OLD
+  attributeDialog.className = "dialog-overlay"; // NEW
   
   let dialogContent = `
-    <div class="cat-balou-dialog-content">
+    <div class="dialog-content"> 
       <h3>Select Attribute to Remove</h3>
       <p>Choose which attribute to remove from ${targetUsername}:</p>
-      <div class="cat-balou-attributes">`;
+      <div class="dialog-buttons">`; // Re-use dialog-buttons class for layout
   
   attributes.forEach(attr => {
-    dialogContent += `<button class="attribute-button" data-attr="${attr}">${attr}</button>`;
+    // Use generic button class
+    dialogContent += `<button class="dialog-button dialog-button--secondary attribute-button" data-attr="${attr}">${attr}</button>`;
   });
   
   dialogContent += `</div></div>`;
@@ -2121,20 +2126,21 @@ function showPanicOptionsDialog(targetUsername) {
   const cardReference = {...selectedCard};
   
   const optionsDialog = document.createElement("div");
-  optionsDialog.className = "panic-dialog";
+  // optionsDialog.className = "panic-dialog"; // OLD
+  optionsDialog.className = "dialog-overlay"; // NEW
   
   let dialogContent = `
-    <div class="panic-dialog-content">
+    <div class="dialog-content"> 
       <h3>Panic! - Choose Action</h3>
       <p>What would you like to steal from ${targetUsername}?</p>
-      <div class="panic-buttons">`;
+      <div class="dialog-buttons">`;
       
   if (targetPlayer.cardCount > 0) {
-    dialogContent += `<button id="stealCard">Steal a Random Card</button>`;
+    dialogContent += `<button id="stealCard" class="dialog-button dialog-button--secondary">Steal a Random Card</button>`;
   }
   
   if (targetPlayer.attributes && targetPlayer.attributes.length > 0) {
-    dialogContent += `<button id="stealAttribute">Steal an Attribute</button>`;
+    dialogContent += `<button id="stealAttribute" class="dialog-button dialog-button--secondary">Steal an Attribute</button>`;
   }
   
   dialogContent += `</div></div>`;
@@ -2166,16 +2172,18 @@ function showPanicOptionsDialog(targetUsername) {
 
 function showAttributeSelectionDialogForPanic(targetUsername, attributes, cardReference) {
   const attributeDialog = document.createElement("div");
-  attributeDialog.className = "panic-dialog";
+  // attributeDialog.className = "panic-dialog"; // OLD
+  attributeDialog.className = "dialog-overlay"; // NEW
   
   let dialogContent = `
-    <div class="panic-dialog-content">
+    <div class="dialog-content"> 
       <h3>Select Attribute to Steal</h3>
       <p>Choose which attribute to take from ${targetUsername}:</p>
-      <div class="panic-attributes">`;
+      <div class="dialog-buttons">`; // Re-use dialog-buttons class
   
   attributes.forEach(attr => {
-    dialogContent += `<button class="attribute-button" data-attr="${attr}">${attr}</button>`;
+    // Use generic button class
+    dialogContent += `<button class="dialog-button dialog-button--secondary attribute-button" data-attr="${attr}">${attr}</button>`;
   });
   
   dialogContent += `</div></div>`;
@@ -2300,7 +2308,7 @@ function kitCarlsonFunction(data) {
   data.cards.forEach(card => {
     const imagePath = `./res/img/${card.name}.png`; 
     dialogHTML += `
-      <div class="kit-carlson-card card-item" data-name="${card.name}" data-details="${card.details}">
+      <div class="card-item card-item--dialog kit-carlson-card" data-name="${card.name}" data-details="${card.details}"> 
         <img src="${imagePath}" alt="${card.name}" style="width: 100%; height: 100%; object-fit: contain;">
         <div class="card-details-overlay">${card.details}</div>
       </div>`;
@@ -2309,7 +2317,7 @@ function kitCarlsonFunction(data) {
   dialogHTML += `
       </div>
       <div class="selected-count">Selected: 0/2</div>
-      <button class="confirm-selection" disabled>Confirm Selection</button>
+      <button class="confirm-selection dialog-button dialog-button--confirm" disabled>Confirm Selection</button> 
     </div>`;
   
   kitCarlsonDialog.innerHTML = dialogHTML;
@@ -2379,72 +2387,92 @@ socket.on("general store cards", (data) => {
 });
 
 function showGeneralStoreDialog(cards, playedBy, currentSelector) {
-  const generalStoreDialog = document.createElement("div");
-  generalStoreDialog.className = "general-store-dialog";
-  
+  const dialog = document.createElement('div');
+  dialog.id = 'general-store-dialog'; // Keep ID for specific store styling/logic
+  dialog.className = 'dialog-overlay'; // Use generic overlay class
+
+  // Construct the inner HTML, including the generic content class
   let dialogHTML = `
-    <div class="general-store-content">
+    <div class="dialog-content">
       <h3>General Store</h3>
       <p>${playedBy} played General Store!</p>
       <p class="selector-info">Current selector: <strong>${currentSelector}</strong></p>`;
-  
+
   if (currentSelector === username) {
     dialogHTML += `<p class="your-turn">It's your turn to select a card!</p>`;
   } else {
     dialogHTML += `<p class="waiting">Waiting for ${currentSelector} to select a card...</p>`;
   }
-  
-  dialogHTML += `<div class="general-store-cards">`;
-  
+
+  dialogHTML += `<div class="general-store-cards" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">`;
+
   cards.forEach(card => {
     const disabledClass = currentSelector !== username ? ' disabled' : '';
     const imagePath = `./res/img/${card.name}.png`;
-    
+
     dialogHTML += `
-      <div class="general-store-card card-item${disabledClass}" data-name="${card.name}" data-details="${card.details}">
-        <img src="${imagePath}" alt="${card.name}" style="width: 100%; height: 100%; object-fit: contain;">
-        <div class="card-details-overlay">${card.details}</div>
+      <div class="card-item general-store-card${disabledClass}" data-name="${card.name}" data-details="${card.details}" style="width: 100px; height: 150px;">
+        <img src="${imagePath}" alt="${card.name}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 6px;">
+        <div class="card-details-overlay" style="width: 25px; height: 25px; font-size: 11px; bottom: 4px; left: 4px;">${card.details}</div>
       </div>`;
   });
-  
-  dialogHTML += `</div></div>`;
-  
-  generalStoreDialog.innerHTML = dialogHTML;
-  document.body.appendChild(generalStoreDialog);
-  
-  if (currentSelector === username) {
-    const storeCards = document.querySelectorAll('.general-store-card');
-    storeCards.forEach(cardElement => {
-      cardElement.addEventListener('click', () => {
-        const cardName = cardElement.getAttribute('data-name');
-        const cardDetails = cardElement.getAttribute('data-details');
-        
-        socket.emit("select general store card", {
-          card: { name: cardName, details: cardDetails }
-        });
-        
-        storeCards.forEach(c => {
-          c.classList.add('disabled');
-          c.style.pointerEvents = 'none';
-        });
-        
-        const selectorInfo = document.querySelector('.selector-info');
-        if (selectorInfo) {
-          selectorInfo.innerHTML = '<p>You selected a card. Waiting for other players...</p>';
-        }
-        
-        if (document.querySelector('.your-turn')) {
-          document.querySelector('.your-turn').remove();
-        }
-      });
-    });
-  }
-}
 
+  dialogHTML += `</div></div>`; // End of general-store-cards and dialog-content
+
+  // Set the innerHTML of the dialog overlay
+  dialog.innerHTML = dialogHTML;
+  document.body.appendChild(dialog);
+
+  if (currentSelector === username) {
+    // Important: Query for cards *after* appending dialog to DOM
+    const storeCards = dialog.querySelectorAll('.general-store-card');
+    storeCards.forEach(cardElement => {
+      // Add click listener only if not disabled
+      if (!cardElement.classList.contains('disabled')) {
+        cardElement.addEventListener('click', () => {
+          const cardName = cardElement.getAttribute('data-name');
+          const cardDetails = cardElement.getAttribute('data-details');
+
+          socket.emit("select general store card", {
+            card: { name: cardName, details: cardDetails }
+          });
+
+          // Disable all cards after selection
+          dialog.querySelectorAll('.general-store-card').forEach(c => {
+            c.classList.add('disabled');
+            c.style.pointerEvents = 'none';
+            // Remove existing listeners to prevent multiple selections if re-enabled somehow
+            const new_element = c.cloneNode(true);
+            c.parentNode.replaceChild(new_element, c);
+          });
+
+          // Update status message
+          const selectorInfo = dialog.querySelector('.selector-info');
+          if (selectorInfo) {
+            // Replace the "Current selector" line entirely
+             selectorInfo.outerHTML = '<p class="waiting">You selected a card. Waiting for other players...</p>';
+          }
+
+          if (dialog.querySelector('.your-turn')) {
+            dialog.querySelector('.your-turn').remove();
+          }
+        }); // End of event listener
+      } // End of if not disabled
+    }); // End of forEach storeCards
+  } // End of if currentSelector === username
+} // End of showGeneralStoreDialog function
+
+// Ensure this handler is outside the function above
 socket.on("general store update selector", (data) => {
   console.log("General Store selector update:", data.currentSelector);
-  const dialog = document.querySelector('.general-store-dialog');
+  const dialog = document.querySelector('.dialog-overlay'); // Use generic selector
   if (!dialog) return;
+  // Check if it's actually the general store dialog (might need a more specific check if multiple dialogs can be open)
+  const titleElement = dialog.querySelector('.dialog-content h3');
+  if (!titleElement || !titleElement.textContent.includes("General Store")) {
+    console.log("Ignoring selector update for non-General Store dialog.");
+    return;
+  }
 
   const selectorInfo = dialog.querySelector('.selector-info');
   if (selectorInfo) {
@@ -2455,7 +2483,7 @@ socket.on("general store update selector", (data) => {
     const waitingMsg = dialog.querySelector('.waiting');
     if (waitingMsg) waitingMsg.remove();
     
-    const generalStoreContent = dialog.querySelector('.general-store-content');
+    const generalStoreContent = dialog.querySelector('.dialog-content');
     
     const existingYourTurn = dialog.querySelector('.your-turn');
     if (existingYourTurn) existingYourTurn.remove();
@@ -2472,6 +2500,7 @@ socket.on("general store update selector", (data) => {
       card.classList.remove('disabled');
       card.style.pointerEvents = 'auto';
       
+      // Re-attach event listener - simple way
       const clone = card.cloneNode(true);
       card.parentNode.replaceChild(clone, card);
       
@@ -2507,7 +2536,7 @@ socket.on("general store update selector", (data) => {
     if (!waitingMsg) {
       waitingMsg = document.createElement('p');
       waitingMsg.className = 'waiting';
-      const generalStoreContent = dialog.querySelector('.general-store-content');
+      const generalStoreContent = dialog.querySelector('.dialog-content');
       generalStoreContent.insertBefore(waitingMsg, dialog.querySelector('.general-store-cards'));
     }
     waitingMsg.textContent = `Waiting for ${data.currentSelector} to select a card...`;
@@ -2523,8 +2552,15 @@ socket.on("general store update selector", (data) => {
 socket.on("general store card selected", (data) => {
   console.log(`${data.player} selected ${data.card.name} from General Store`);
   
-  const dialog = document.querySelector('.general-store-dialog');
+  // Use generic selector
+  const dialog = document.querySelector('.dialog-overlay'); 
   if (!dialog) return;
+  // Optional: Add check if it's the correct dialog (like in update selector)
+  const titleElement = dialog.querySelector('.dialog-content h3');
+  if (!titleElement || !titleElement.textContent.includes("General Store")) {
+      console.log("Ignoring card selection for non-General Store dialog.");
+      return;
+  }
   
   let cardRemoved = false;
   const cards = dialog.querySelectorAll('.general-store-card');
@@ -2544,7 +2580,7 @@ socket.on("general store card selected", (data) => {
   if (!selectionsContainer) {
     selectionsContainer = document.createElement('div');
     selectionsContainer.className = 'selections-container';
-    dialog.querySelector('.general-store-content').appendChild(selectionsContainer);
+    dialog.querySelector('.dialog-content').appendChild(selectionsContainer);
   }
   
   const selectionInfo = document.createElement('div');
@@ -2564,17 +2600,27 @@ socket.on("general store complete", (data) => {
     }
   }
   
-  const dialog = document.querySelector('.general-store-dialog');
+  // Use generic selector
+  const dialog = document.querySelector('.dialog-overlay'); 
   if (dialog) {
-    const finalMsg = document.createElement('p');
-    finalMsg.className = 'final-message';
-    finalMsg.textContent = 'All players have selected their cards!';
-    dialog.querySelector('.general-store-content').appendChild(finalMsg);
-    
-    setTimeout(() => {
-      document.body.removeChild(dialog);
-      renderPlayerCards(players);
-    }, 2000);
+    // Optional: Add check if it's the correct dialog (like in update selector)
+    const titleElement = dialog.querySelector('.dialog-content h3');
+    if (titleElement && titleElement.textContent.includes("General Store")) {
+        const finalMsg = document.createElement('p');
+        finalMsg.className = 'final-message';
+        finalMsg.textContent = 'All players have selected their cards!';
+        dialog.querySelector('.dialog-content').appendChild(finalMsg);
+        
+        setTimeout(() => {
+          // Check if dialog still exists before removing
+          if (dialog.parentNode) { 
+            document.body.removeChild(dialog);
+          }
+          renderPlayerCards(players);
+        }, 2000);
+    } else {
+        console.log("Ignoring complete event for non-General Store dialog.");
+    }
   }
 });
 
@@ -2705,7 +2751,7 @@ socket.on("check jail", () => {
 });
 
 function showJailDialog() {
-  const existingDialog = document.querySelector('.jail-dialog');
+  const existingDialog = document.querySelector('.dialog-overlay'); // Use generic selector
   if (existingDialog) {
     console.log("Jail dialog already open, not creating a new one.");
     return; 
@@ -2713,15 +2759,16 @@ function showJailDialog() {
   console.log("[showJailDialog] Creating Jail dialog.");
 
   const jailDialog = document.createElement("div");
-  jailDialog.className = "jail-dialog";
+  // jailDialog.className = "jail-dialog"; // OLD
+  jailDialog.className = "dialog-overlay"; // NEW
   
   const dialogHTML = `
-    <div class="jail-dialog-content">
+    <div class="dialog-content"> 
       <h3>You're in Jail!</h3>
       <p>Draw a card. If it's Hearts ♥, you escape and can play your turn.</p>
       <p>Otherwise, your turn is skipped.</p>
-      <div class="jail-buttons">
-        <button id="drawJailCard">Draw Card</button>
+      <div class="dialog-buttons"> 
+        <button id="drawJailCard" class="dialog-button dialog-button--primary">Draw Card</button>
       </div>
     </div>
   `;
@@ -2739,15 +2786,15 @@ function showJailDialog() {
 }
 
 socket.on("jail result", (data) => {
-  const jailDialog = document.querySelector('.jail-dialog');
+  const jailDialog = document.querySelector('.dialog-overlay');
   if (!jailDialog) return;
   
-  const content = jailDialog.querySelector('.jail-dialog-content');
+  const content = jailDialog.querySelector('.dialog-content');
   const imagePath = `./res/img/${data.card.name}.png`;
   const drawnCardHTML = `
-    <div class="drawn-jail-card">
+    <div class="drawn-card-display"> 
       <p>You drew:</p>
-      <div class="card-item" style="margin: 10px auto;">
+      <div class="card-item card-item--dialog" style="margin: 10px auto;"> 
           <img src="${imagePath}" alt="${data.card.name}" style="width: 100%; height: 100%; object-fit: contain;">
           <div class="card-details-overlay">${data.card.details}</div>
       </div>
@@ -2757,7 +2804,8 @@ socket.on("jail result", (data) => {
   content.insertAdjacentHTML('beforeend', drawnCardHTML);
   
   const resultMessage = document.createElement('p');
-  resultMessage.className = 'jail-result';
+  // resultMessage.className = 'jail-result'; // OLD
+  resultMessage.className = 'dialog-result-message'; // NEW
   
   if (data.escaped) {
     resultMessage.textContent = "It's Hearts! You escape from Jail and can continue your turn.";
@@ -2778,26 +2826,18 @@ socket.on("jail result", (data) => {
   
   content.appendChild(resultMessage);
   
-  const buttonContainer = jailDialog.querySelector('.jail-buttons');
+  const buttonContainer = jailDialog.querySelector('.dialog-buttons');
   buttonContainer.innerHTML = '';
   
   const dismissButton = document.createElement('button');
   dismissButton.textContent = 'OK';
-  dismissButton.className = 'dismiss-jail';
+  // dismissButton.className = 'dismiss-jail'; // OLD ID-like class
+  dismissButton.className = 'dialog-button dialog-button--secondary'; // NEW
   buttonContainer.appendChild(dismissButton);
   
   dismissButton.addEventListener('click', () => {
     document.body.removeChild(jailDialog);
   });
-  
-  // Removed automatic close on escape
-  // if (data.escaped) {
-  //   setTimeout(() => {
-  //     if (jailDialog.parentNode) {
-  //       document.body.removeChild(jailDialog);
-  //     }
-  //   }, 3000);
-  // }
 });
 
 socket.on("discard pile top", (data) => {
@@ -2815,24 +2855,24 @@ socket.on("discard pile top", (data) => {
 
 function showPedroRamirezDialog(topCard) {
   const pedroDialog = document.createElement("div");
-  pedroDialog.className = "pedro-dialog";
+  pedroDialog.className = "dialog-overlay";
   
   const dialogHTML = `
-    <div class="pedro-dialog-content">
+    <div class="dialog-content"> 
       <h3>Pedro Ramirez Ability</h3>
       <p>You can draw your first card from the discard pile instead of the deck.</p>
       
-      <div class="discard-card">
+      <div class="drawn-card-display"> 
         <p>Top card in discard pile:</p>
-        <div class="card-item"> 
+        <div class="card-item card-item--dialog">  
           <img src="./res/img/${topCard.name}.png" alt="${topCard.name}" style="width: 100%; height: 100%; object-fit: contain;">
           <div class="card-details-overlay">${topCard.details}</div>
         </div>
       </div>
       
-      <div class="pedro-buttons">
-        <button id="drawFromDiscard">Draw from Discard</button>
-        <button id="drawFromDeck">Draw from Deck</button>
+      <div class="dialog-buttons"> 
+        <button id="drawFromDiscard" class="dialog-button dialog-button--warning">Draw from Discard</button>
+        <button id="drawFromDeck" class="dialog-button dialog-button--secondary">Draw from Deck</button>
       </div>
     </div>
   `;
@@ -2840,7 +2880,7 @@ function showPedroRamirezDialog(topCard) {
   pedroDialog.innerHTML = dialogHTML;
   document.body.appendChild(pedroDialog);
   
-  
+  // Restore button listeners
   document.getElementById("drawFromDiscard").addEventListener("click", () => {
     socket.emit("draw from discard");
     numberOfDrawnCards++; 
@@ -2882,22 +2922,23 @@ socket.on("dynamite turn start", (data) => {
 });
 
 function showDynamiteCheckDialog() {
-    const existingDialog = document.querySelector('.dynamite-dialog');
+    const existingDialog = document.querySelector('.dialog-overlay'); // Use generic selector
     if (existingDialog) {
         console.log("Dynamite dialog already open, not creating a new one.");
         return; 
     }
 
     const dynamiteDialog = document.createElement("div");
-    dynamiteDialog.className = "dynamite-dialog"; 
+    // dynamiteDialog.className = "dynamite-dialog"; // OLD
+    dynamiteDialog.className = "dialog-overlay"; // NEW
     
     const dialogHTML = `
-      <div class="dynamite-dialog-content">
+      <div class="dialog-content"> 
         <h3>Dynamite Check!</h3>
         <p>You must draw a card to check the Dynamite before your turn begins.</p>
         <p>If you draw ♠2 through ♠9, it explodes!</p>
-        <div class="dynamite-buttons">
-          <button id="drawDynamiteCard">Draw for Dynamite</button>
+        <div class="dialog-buttons"> 
+          <button id="drawDynamiteCard" class="dialog-button dialog-button--primary">Draw for Dynamite</button>
         </div>
       </div>
     `;
@@ -2915,15 +2956,16 @@ function showDynamiteCheckDialog() {
 
 socket.on("dynamite explosion", (data) => {
     dynamiteCheckPending = false; 
-    const dynamiteDialog = document.querySelector('.dynamite-dialog');
+    const dynamiteDialog = document.querySelector('.dialog-overlay'); // Use generic selector
     if (!dynamiteDialog) return;
 
-    const content = dynamiteDialog.querySelector('.dynamite-dialog-content');
+    const content = dynamiteDialog.querySelector('.dialog-content');
     const imagePath = `./res/img/${data.card.name}.png`;
+    // Use generic class
     const drawnCardHTML = `
-      <div class="drawn-dynamite-card">
+      <div class="drawn-card-display"> 
         <p>You drew:</p>
-        <div class="card-item" style="margin: 10px auto;">
+        <div class="card-item card-item--dialog" style="margin: 10px auto;"> 
             <img src="${imagePath}" alt="${data.card.name}" style="width: 100%; height: 100%; object-fit: contain;">
             <div class="card-details-overlay">${data.card.details}</div>
         </div>
@@ -2932,17 +2974,19 @@ socket.on("dynamite explosion", (data) => {
     content.insertAdjacentHTML('beforeend', drawnCardHTML);
 
     const resultMessage = document.createElement('p');
-    resultMessage.className = 'dynamite-result';
+    // resultMessage.className = 'dynamite-result'; // OLD
+    resultMessage.className = 'dialog-result-message'; // NEW
     resultMessage.textContent = `BOOM! Dynamite exploded! You lose 3 HP. Your HP is now ${data.currentHP}.`;
     resultMessage.style.color = '#F44336'; 
     content.appendChild(resultMessage);
 
-    const buttonContainer = dynamiteDialog.querySelector('.dynamite-buttons');
+    const buttonContainer = dynamiteDialog.querySelector('.dialog-buttons');
     buttonContainer.innerHTML = ''; 
 
     const dismissButton = document.createElement('button');
     dismissButton.textContent = 'OK';
-    dismissButton.className = 'dismiss-dynamite';
+    // dismissButton.className = 'dismiss-dynamite'; // OLD
+    dismissButton.className = 'dialog-button dialog-button--secondary'; // NEW
     buttonContainer.appendChild(dismissButton);
 
     dismissButton.addEventListener("click", () => {
@@ -2955,7 +2999,7 @@ socket.on("dynamite explosion", (data) => {
 
 socket.on("dynamite passed", (data) => {
     dynamiteCheckPending = false; 
-    const dynamiteDialog = document.querySelector('.dynamite-dialog');
+    const dynamiteDialog = document.querySelector('.dialog-overlay'); // Use generic selector
 
     if (!dynamiteDialog && data.from !== username) {
         console.log(`Dynamite was passed from ${data.from} to ${data.to}`);
@@ -2969,31 +3013,34 @@ socket.on("dynamite passed", (data) => {
 
      if (!dynamiteDialog) return; 
 
-    const content = dynamiteDialog.querySelector('.dynamite-dialog-content');
+    const content = dynamiteDialog.querySelector('.dialog-content');
     const imagePath = `./res/img/${data.card.name}.png`;
+    // Use generic class
     const drawnCardHTML = `
-      <div class="drawn-dynamite-card">
+      <div class="drawn-card-display"> 
         <p>You drew:</p>
-        <div class="card-item" style="margin: 10px auto;">
+        <div class="card-item card-item--dialog" style="margin: 10px auto;"> 
             <img src="${imagePath}" alt="${data.card.name}" style="width: 100%; height: 100%; object-fit: contain;">
             <div class="card-details-overlay">${data.card.details}</div>
         </div>
       </div>
     `;
-    content.insertAdjacentHTML('beforeend', drawnCardHTML);
+  content.insertAdjacentHTML('beforeend', drawnCardHTML);
 
     const resultMessage = document.createElement('p');
-    resultMessage.className = 'dynamite-result';
+    // resultMessage.className = 'dynamite-result'; // OLD
+    resultMessage.className = 'dialog-result-message'; // NEW
     resultMessage.textContent = `Phew! Dynamite didn't explode. It passes to ${data.to}.`;
     resultMessage.style.color = '#4CAF50'; 
     content.appendChild(resultMessage);
 
-    const buttonContainer = dynamiteDialog.querySelector('.dynamite-buttons');
+    const buttonContainer = dynamiteDialog.querySelector('.dialog-buttons');
     buttonContainer.innerHTML = ''; 
 
     const dismissButton = document.createElement('button');
     dismissButton.textContent = 'OK';
-    dismissButton.className = 'dismiss-dynamite';
+    // dismissButton.className = 'dismiss-dynamite'; // OLD
+    dismissButton.className = 'dialog-button dialog-button--secondary'; // NEW
     buttonContainer.appendChild(dismissButton);
 
     dismissButton.addEventListener("click", () => {
@@ -3067,28 +3114,29 @@ socket.on("duel challenge", (data) => {
 });
 
 function showDuelDialog(challengerUsername) {
-  const existingDialog = document.querySelector('.duel-dialog');
+  const existingDialog = document.querySelector('.dialog-overlay'); // Use generic selector
   if (existingDialog) {
       document.body.removeChild(existingDialog);
   }
 
   const duelDialog = document.createElement("div");
-  duelDialog.className = "duel-dialog missed-dialog";
+  // duelDialog.className = "duel-dialog missed-dialog"; // OLD
+  duelDialog.className = "dialog-overlay"; // NEW
   duelDialog.id = `duel-dialog-${Date.now()}`;
 
   const bangCard = playerHand.find(card => card.name === "Bang!");
 
   let dialogHTML = `
-    <div class="missed-dialog-content">
+    <div class="dialog-content"> 
       <h3>Duel!</h3>
       <p>${challengerUsername} has challenged you!</p>
       <p>You must respond with a Bang! card or lose 1 HP.</p>
-      <div class="missed-buttons">`;
+      <div class="dialog-buttons">`;
 
   if (bangCard) {
-      dialogHTML += `<button id="playBang-${duelDialog.id}">Play Bang!</button>`;
+      dialogHTML += `<button id="playBang-${duelDialog.id}" class="dialog-button dialog-button--confirm">Play Bang!</button>`;
   }
-  dialogHTML += `<button id="concedeDuel-${duelDialog.id}">Take 1 Damage</button>
+  dialogHTML += `<button id="concedeDuel-${duelDialog.id}" class="dialog-button dialog-button--danger">Take 1 Damage</button>
       </div>
     </div>
   `;
@@ -3096,6 +3144,7 @@ function showDuelDialog(challengerUsername) {
   duelDialog.innerHTML = dialogHTML;
   document.body.appendChild(duelDialog);
 
+  // ... Event listener logic remains the same ...
   setTimeout(() => {
     const playBangBtn = document.getElementById(`playBang-${duelDialog.id}`);
     if (playBangBtn) {
