@@ -46,16 +46,27 @@ enterUsername.onclick = () => {
     const lastFour = timeNow.slice(-4);
     username = username + "#" + lastFour;
     socket.emit("save username", username);
-    document.getElementById("nameInput").style.display = "none";
-    document.getElementById("enterUsername").style.display = "none";
-    document.getElementById("createRoomButton").style.display = "block";
-    document.getElementsByClassName("joinRoomContainer")[0].style.display = "flex";
-    
+    const nameInputElem = document.getElementById("nameInput");
+    if (nameInputElem) nameInputElem.style.display = "none";
+    const enterUsernameElem = document.getElementById("enterUsername");
+    if (enterUsernameElem) enterUsernameElem.style.display = "none";
+    const roomControlsElem = document.getElementById("roomControls");
+    if (roomControlsElem) roomControlsElem.style.display = "flex";
+    const createRoomButtonElem = document.getElementById("createRoomButton");
+    if (createRoomButtonElem) createRoomButtonElem.style.display = "block";
+    const joinRoomContainer = document.getElementsByClassName("joinRoomContainer")[0];
+    if (joinRoomContainer) joinRoomContainer.style.display = "flex";
   } else {
     alert("name too long")
   }
-
 }
+
+window.addEventListener('DOMContentLoaded', () => { //nechapu bro
+  const roomControls = document.getElementById("roomControls");
+  if (roomControls) roomControls.style.display = "none";
+  const sidebarWrapper = document.getElementById("sidebarWrapper");
+  if (sidebarWrapper) sidebarWrapper.style.display = "none";
+});
 
 createRoomButton.onclick = () => {
   const timeNow = Date.now().toString();
@@ -101,56 +112,116 @@ enterRoom.onclick = () => {
 };
 
 leaveRoom.onclick = () => {
-
   if (currentRoom) {
     socket.emit("leave room", { roomNum: currentRoom });
 
+    // Reset UI to original state
     roomInfo.innerHTML = "Room: ";
     users.innerHTML = "";
     currentRoom = null;
 
+    // Show menu controls and hide room panel
+    document.getElementById("menuControls").style.display = "block";
+    document.getElementById("roomPanelWrapper").style.display = "none";
+
+    // Reset controls to default visibility
     document.getElementById("createRoomButton").style.display = "block";
     document.getElementById("switchlabel").style.display = "block";
     document.getElementById("maxPlayers").style.display = "block";
     document.getElementById("roomInput").style.display = "block";
     document.getElementById("enterRoom").style.display = "block";
     document.getElementById("leaveRoom").style.display = "none";
+    document.getElementById("startGame").style.display = "none";
+
+    // Reset owner, test, and any sidebar info
     owner.innerHTML = ``;
     test.innerHTML = ``;
+    if (document.getElementById("joinedRoomInfo")) {
+      document.getElementById("joinedRoomInfo").innerText = "";
+    }
+    if (document.getElementById("users")) {
+      document.getElementById("users").innerText = "";
+    }
+    if (document.getElementById("usersCount")) {
+      document.getElementById("usersCount").innerText = "";
+    }
 
+    // Show available rooms again and refresh the list
+    const availableRoomsElem = document.getElementById("availableRooms");
+    if (availableRoomsElem) {
+      availableRoomsElem.style.display = "block";
+      availableRoomsElem.innerHTML = "<p>Available rooms</p>"; // Reset header
+    }
     socket.emit("get rooms");
+
+    // Remove any lingering overlays or dialogs
+    document.querySelectorAll('.dialog-overlay').forEach(el => el.remove());
   } else {
     alert("You are not in a room");
   }
-
 };
 
 socket.on("join room", (data) => {
   if (data.status === 1) {
     roomInfo.innerHTML = `${data.message}: ${data.roomNum}`;
     currentRoom = data.roomNum;
+    // Hide available rooms and show sidebar
+    document.getElementById("availableRooms").style.display = "none";
+    document.getElementById("roomPanelWrapper").style.display = "flex";
+    // Hide the menu controls (join/create) when in a room
+    document.getElementById("menuControls").style.display = "none";
+    // Set the player limit in the panel
+    if (document.getElementById("sidebarPlayerLimit") && typeof data.maxPlayers !== 'undefined') {
+      document.getElementById("sidebarPlayerLimit").innerText = data.maxPlayers;
+    }
+    // Set the joined room info
+    if (document.getElementById("joinedRoomInfo") && data.roomNum) {
+      document.getElementById("joinedRoomInfo").innerText = `Room joined: ${data.roomNum}`;
+    }
     return;
   }
   roomInfo.innerHTML = data.message;
 });
 
 socket.on("update room users", (data) => {
-  users.innerHTML = "";
+  if (users) users.innerHTML = "";
   players = data;
   data.map((user) => {
-    users.innerHTML += `<p>${user}</p>`;
+    if (users) users.innerHTML += `<p>${user}</p>`;
   });
 });
 
+let currentRoomOwner = null;
 socket.on("get owner", (roomOwner) => {
-  owner.innerHTML = `<h1>${roomOwner}</h1>`;
+  currentRoomOwner = roomOwner;
+  if (owner) owner.innerHTML = `<h1>${roomOwner}</h1>`;
 });
 
 startGame.onclick = () => {
-  const roomOwner = document.getElementById('owner').innerText;
-  console.log(players.length)
-  if (username === roomOwner && players.length >= 4) {
-    const gameData = generateGameData(players);
+  // Use the tracked room owner from the socket event
+  if (!currentRoomOwner) {
+    alert("Room owner not set! Cannot start game.");
+    return;
+  }
+  // Always get the latest players from the DOM/user list
+  let currentPlayers = [];
+  const userListElem = document.getElementById('users');
+  if (userListElem) {
+    // Each player is in a <li> or <div> in users
+    const userNodes = userListElem.querySelectorAll('li, div');
+    userNodes.forEach(node => {
+      const name = node.textContent.trim();
+      if (name) currentPlayers.push({ username: name });
+    });
+  }
+  // Fallback to players array if DOM is empty
+  if (currentPlayers.length < 4 && players.length >= 4) {
+    currentPlayers = players;
+  }
+  console.log('Current players for game start:', currentPlayers);
+  
+  if (username === currentRoomOwner && currentPlayers.length >= 4) {
+    const gameData = generateGameData(currentPlayers);
     socket.emit("start game", { room: currentRoom, gameData: gameData });
   } else {
     alert("Only the room owner can start the game or not enough players or you don't have a username good error message yes");
@@ -158,11 +229,25 @@ startGame.onclick = () => {
 }
 
 socket.on("room closed", (data) => {
-  roomInfo.innerHTML = data.message; //pak odeber
-  users.innerHTML = "";
+  // Show the message briefly
+  if (roomInfo) roomInfo.innerHTML = data.message;
+  if (users) users.innerHTML = "";
   currentRoom = null;
-  socket.emit("get rooms");
-  alert(data.message);
+
+  // Hide startGame button immediately
+  document.getElementById("startGame").style.display = "none";
+
+  // Restore UI to original state after a short delay
+  setTimeout(() => {
+    // Reset roomInfo and show available rooms
+    if (roomInfo) roomInfo.innerHTML = "Room:";
+    const availableRoomsElem = document.getElementById("availableRooms");
+    if (availableRoomsElem) {
+      availableRoomsElem.style.display = "block";
+      availableRoomsElem.innerHTML = "<p>Available rooms</p>";
+    }
+    socket.emit("get rooms");
+  }, 1200);
 });
 
 function generateRoles(playerCount) {
@@ -449,6 +534,10 @@ function dealInitialCards(gameData) {
 
 function renderPlayerCards(gameData) {
   // Clear the game area first
+  if (!gameArea) {
+    console.error('gameArea element not found!');
+    return;
+  }
   gameArea.innerHTML = '';
 
   const currentPlayerData = gameData.find(player => player.username === username);
@@ -461,7 +550,7 @@ function renderPlayerCards(gameData) {
   const elementsToHide = [
     "roomInput", "enterRoom", "createRoomButton", "availableRooms", "startGame",
     "lick", "owner", "test", "displayCookies", "users", "usersCount", "maxPlayers",
-    "nameInput", "enterUsername", "roomInfo", "switchlabel", "titleText", "titleSubtext", "leaveRoom"
+    "nameInput", "enterUsername", "roomInfo", "switchlabel", "titleText", "titleSubtext", "leaveRoom", "roomPanel"
   ];
 
   elementsToHide.forEach(id => {
@@ -1276,18 +1365,19 @@ function disableAllTargetingModes() {
 //
 
 socket.on("get values", (numberOfCookies, fruser) => {
-  displayCookies.innerHTML += `<p>${fruser}: ${numberOfCookies}</p>`;
+  if (displayCookies) displayCookies.innerHTML += `<p>${fruser}: ${numberOfCookies}</p>`;
   console.log(numberOfCookies);
 });
 
 socket.on("get max players", (letMaxPlayers) => {
-  test.innerHTML += `<h1>${letMaxPlayers}</h1>`;
+  // No longer render player limit here, handled in sidebar
+  if (test) test.innerHTML = "";
 });
 
 socket.on("get rooms", (data) => {
-  availableRooms.innerHTML = "<p>Available rooms</p>";
+  if (availableRooms) availableRooms.innerHTML = "<p>Available rooms</p>";
   data.forEach((room) => {
-    availableRooms.innerHTML += `
+    if (availableRooms) availableRooms.innerHTML += `
       <p class="availableRoom" data-room-num="${room.roomNum}">${room.roomNum} (${room.playerCount}/${room.maxPlayers} players)</p>
     `;
   });
