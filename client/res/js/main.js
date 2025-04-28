@@ -49,6 +49,8 @@ enterUsername.onclick = () => {
     document.getElementById("nameInput").style.display = "none";
     document.getElementById("enterUsername").style.display = "none";
     document.getElementById("createRoomButton").style.display = "block";
+    document.getElementsByClassName("joinRoomContainer")[0].style.display = "flex";
+    
   } else {
     alert("name too long")
   }
@@ -87,11 +89,6 @@ function isPrivate() {
 window.onload = () => {
   socket.emit("get rooms");
 };
-
-lick.onclick = () => {
-  numberOfCookies++;
-  socket.emit("lick", numberOfCookies)
-}
 
 enterRoom.onclick = () => {
   if (username) {
@@ -464,13 +461,15 @@ function renderPlayerCards(gameData) {
   const elementsToHide = [
     "roomInput", "enterRoom", "createRoomButton", "availableRooms", "startGame",
     "lick", "owner", "test", "displayCookies", "users", "usersCount", "maxPlayers",
-    "nameInput", "enterUsername", "roomInfo", "switchlabel"
+    "nameInput", "enterUsername", "roomInfo", "switchlabel", "titleText", "titleSubtext", "leaveRoom"
   ];
 
   elementsToHide.forEach(id => {
     const element = document.getElementById(id);
     if (element) element.style.display = "none";
   });
+
+  document.body.style.backgroundImage = "url('./res/img/gameBackground.png')";
 
   // Fix container to prevent scrolling
   document.querySelector('.container').style.margin = "0";

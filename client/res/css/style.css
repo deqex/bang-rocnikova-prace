@@ -126,7 +126,6 @@
   text-align: center;
   margin: 20px 0;
   padding: 10px;
-  background-color: #f5f5f5;
   border-radius: 5px;
   display: flex; 
   flex-direction: column; 
@@ -273,9 +272,6 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.6);
-  border-radius: 10px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.3);
   z-index: 1;
   display: flex;
   align-items: center;
@@ -1028,12 +1024,19 @@ body {
   gap: 10px;
 }
 
+.joinRoomContainer {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
 .generic-input {
   border-radius: 10px;
   height: 2rem;
   border: 4px  black solid;
   padding: 0.5rem;
-  font-weight: 700;
+  font-weight: 700 !important; 
 }
 .generic-menu-button {
   border-radius: 10px;
@@ -1041,4 +1044,14 @@ body {
   border: 4px  black solid;
   background-color: rgb(255, 0, 0);
   padding: 0.5rem;
+  font-weight: 700 !important;
+}
+
+.generic-dropdown {
+  border-radius: 10px;
+  height: 3.4rem;
+  width: 3.4rem;
+  border: 4px  black solid;
+  padding: 0.5rem;
+  font-weight: 700 !important;
 }

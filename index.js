@@ -311,12 +311,6 @@ io.on("connection", (socket) => {
     io.emit("get rooms", roomsWithCounts);
   }
 
-  socket.on("lick", (numberOfCookies) => {
-    let fruser = socket.data.user;
-    io.emit("get values", numberOfCookies, fruser);
-    console.log(fruser + numberOfCookies);
-  });
-
   socket.on("start game", ({ room, gameData }) => {
     if (!roomsInfo[room]) return;
 

@@ -1,61 +1,67 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Bang</title>
-    
-    <link rel="stylesheet" href="./res/css/style.css">
-  </head>
-  <body>
-    <div class="container">
-      <div id="title">
-        <h1 class="titleText">Beng!</h1>
-        <p class="titleSubtext">not affiliated with Bang!</p>
-      </div>
-      <div class="roomsContainer">
+
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Bang</title>
+
+  <link rel="stylesheet" href="./res/css/style.css">
+</head>
+
+<body>
+  <div class="container">
+    <div id="title">
+      <h1 id = "titleText" class="titleText">Beng!</h1>
+      <p id = "titleSubtext" class="titleSubtext">not affiliated with Bang!</p>
+    </div>
+    <div class="roomsContainer">
       <div id="availableRooms">
-          <p>Available rooms</p>
+        <p>Available rooms</p>
       </div>
     </div>
-      <p id="roomInfo" style="text-align: center;">Room: </p>
-  
-      <div id="usernameContainer">
-        <input class="generic-input" type="text" id="nameInput" placeholder="Enter username">
-        <button class="generic-menu-button" id="enterUsername">Enter username</button>
-      </div>
+    <p id="roomInfo" style="text-align: center;">Room: </p>
 
-      <input type="text" id="roomInput" placeholder="Enter room">
-      <button id="enterRoom">Enter room</button>
-     
-
-      <select name="maxPlayers" id="maxPlayers">
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="7">7</option>
-      </select>
-
-      <label class="switchlabel" id="switchlabel">
-        <input type="checkbox" id="isPrivate" onclick="isPrivate()"> <span>private</span> <!-- ten onclick neni moc sigma myslim jeste zjistim update: je den pred odevzdanim a nic jsem nezjistil-->
-       </label> 
-      
-      <br>
-      <button id="createRoomButton">Create room</button>
-
-      <div id="users"></div>
-      <div id="usersCount"></div>
-      
-      <button id="lick">Lick</button>
-      <button id="startGame">Start game</button>
-      <button id="leaveRoom">Leave room</button>
-      <div id="owner"></div>
-      <div id="test"></div>
-      <div id="displayCookies"></div>
-      
-      <div id="gameArea"></div>
+    <div id="usernameContainer">
+      <input class="generic-input" type="text" id="nameInput" placeholder="Enter username">
+      <button class="generic-menu-button" id="enterUsername">Enter username</button>
     </div>
 
-    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
-    <script src="./res/js/main.js"></script>
-  </body>
+    <div class="joinRoomContainer">
+      <input class="generic-input" type="text" id="roomInput" placeholder="Enter room">
+      <button class="generic-menu-button" id="enterRoom">Enter room</button>
+    </div>
+
+    <select class="generic-dropdown" name="maxPlayers" id="maxPlayers">
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+      <option value="7">7</option>
+    </select>
+
+    <label class="switchlabel" id="switchlabel">
+      <input type="checkbox" id="isPrivate" onclick="isPrivate()"> <span>private</span>
+      <!-- ten onclick neni moc sigma myslim jeste zjistim update: je den pred odevzdanim a nic jsem nezjistil-->
+    </label>
+
+    <br>
+    <button id="createRoomButton">Create room</button>
+
+    <div id="users"></div>
+    <div id="usersCount"></div>
+
+    <button id="startGame">Start game</button>
+    <button id="leaveRoom">Leave room</button>
+    <div id="owner"></div>
+    <div id="test"></div>
+    <div id="displayCookies"></div>
+
+    <div id="gameArea"></div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+    integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+    crossorigin="anonymous"></script>
+  <script src="./res/js/main.js"></script>
+</body>
+
 </html>
