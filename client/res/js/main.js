@@ -324,21 +324,21 @@ function calculateDistance(playerA, playerB, totalPlayers) {
 
 function generateGameData(players) {
   const championData = { // generovano pomoci ai 
-   // "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
-   // "Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
- //   "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
-  //  "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
-   // "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
- //   "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
-   // "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
-  //  "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
+    "Willy the Kid": { baseHP: 4, description: "Can play any number of BANG! cards" },
+    //"Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
+    "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
+    "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
+    "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
+    "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
+    "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
+    "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
     "Pedro Ramirez": { baseHP: 4, description: "He may draw his first card from the discard pile." },
-    //"Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
+    "Jourdonnais": { baseHP: 4, description: "Has a permanent Barrel in play" },
     //"Black Jack": { baseHP: 4, description: "Shows second card drawn; if Hearts/Diamonds, draws again" },
-    "Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
-   // "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
-    "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" },
-    "Vulture Sam": { baseHP: 4, description: "Takes all cards of eliminated players" }
+    //"Slab the Killer": { baseHP: 4, description: "Players need 2 Missed! cards to cancel his BANG!" },
+  //  "Lucky Duke": { baseHP: 4, description: "Flips top 2 cards and chooses which to use" },
+    "Suzy Laffayete": { baseHP: 4, description: "When she has 0 cards in hand, draws a card" }
+  //  "Vulture Sam": { baseHP: 4, description: "Takes all cards of eliminated players" }
   };
 
   const bangCards = [ // generovano pomoci ai abych nemusel opisovat s trochou opravy struktura tvorena mnou
@@ -581,12 +581,12 @@ function renderPlayerCards(gameData) {
     table.innerHTML = `
       <div class="table-content">
         <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
-          <div class="card-item" style="width: 100%; height: 100%; max-width: 120px; margin: 0 auto;">
+          <div class="card-item" style="width: 100%; height: 100%; max-width: 120px; margin: 0 auto; position: relative;">
             <img src="./res/img/${lastPlayedCard.name}.png" 
                 alt="${lastPlayedCard.name}" 
                 title="${lastPlayedCard.name}" 
-                style="width: 100%; height: 100%; object-fit: contain;">
-            <div class="card-details-overlay">${lastPlayedCard.details}</div>
+                style="width: 100%; height: 100%; object-fit: contain; position: relative; z-index: 1;">
+            <div class="card-details-overlay" style="position: absolute; bottom: 8px; left: 8px; z-index: 2;">${lastPlayedCard.details}</div>
           </div>
         </div>
       </div>
@@ -1385,7 +1385,7 @@ socket.on("get rooms", (data) => {
         socket.emit("join room", { roomNum: roomNum, username: username });
         document.getElementById("leaveRoom").style.display = "block";
       } else {
-        username = "bigretard"; //tohle pak odeber
+        username = "noname"; //tohle pak odeber
         const timeNow = Date.now().toString();
         const lastFour = timeNow.slice(-4);
         username = username + "#" + lastFour;

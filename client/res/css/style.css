@@ -341,10 +341,6 @@
   background-color: #f1f8e9;
 }
 
-.player-card.sheriff {
-  border-top: 3px solid gold;
-}
-
 .player-name {
   font-weight: bold;
   font-size: 1.2em;
@@ -473,8 +469,9 @@
 }
 
 .player-card.active-turn {
-  animation: pulse 1.5s infinite;
-  box-shadow: 0 0 10px #ff9800;
+  box-shadow: 1px 2px 28px 15px rgba(0,0,0,0.75);
+-webkit-box-shadow: 1px 2px 28px 15px rgba(0,0,0,0.75);
+-moz-box-shadow: 1px 2px 28px 15px rgba(0,0,0,0.75);
 }
 
 .player-card.eliminated {
@@ -489,7 +486,16 @@
 .player-card.targetable {
   cursor: pointer;
   border-color: #f44336;
-  box-shadow: 0 0 10px #f44336;
+  border-style: dotted;
+}
+
+.player-card.targetable:hover {
+  cursor: pointer;
+  border-color: #f44336;
+  border-style: dotted;
+  box-shadow: 1px 2px 28px 14px rgba(255,0,0,0.75);
+  -webkit-box-shadow: 1px 2px 28px 14px rgba(255,0,0,0.75);
+  -moz-box-shadow: 1px 2px 28px 14px rgba(255,0,0,0.75);
 }
 
 .target-instruction {
@@ -1321,8 +1327,6 @@ body {
 .upper-menu-box h1.titleText,
 .upper-menu-box p.titleSubtext {
   color: red;
-  -webkit-text-stroke-width: 3px;
-  -webkit-text-stroke-color: black;
 }
 .upper-menu-box h1,
 .upper-menu-box h2,

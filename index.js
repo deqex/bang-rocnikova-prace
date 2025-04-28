@@ -473,11 +473,6 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (!socket.data.user.includes("q")) { // pak odeber pouze testing
-      if (numberOfDrawnCards > 2) return;
-      console.log(`you've drawn ${numberOfDrawnCards} cards already`)
-    }
-
     const drawnCard = room.gameDeck.pop();
     console.log(`${socket.data.user} drew card ${drawnCard.name} (${drawnCard.details}) in room ${socket.data.room}`);
 
