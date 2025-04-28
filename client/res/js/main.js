@@ -328,7 +328,7 @@ function generateGameData(players) {
     //"Calamity Janet": { baseHP: 4, description: "Can use BANG! cards as Missed! and vice versa" },
     "Bart Cassidy": { baseHP: 4, description: "Each time he loses a life point, he draws a card" },
     "Kit Carlson": { baseHP: 4, description: "Looks at top 3 cards of the deck when drawing" },
-    "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
+   // "Jesse Jones": { baseHP: 4, description: "Can draw the first card from the hand of a player" },
     "Rose Doolan": { baseHP: 4, description: "Sees adjacent players at a distance decreased by 1" },
     "Paul Regret": { baseHP: 3, description: "All players see him at an increased distance by 1" },
     "El Gringo": { baseHP: 3, description: "When hit by a player, draws a card from their hand" },
@@ -1574,16 +1574,16 @@ socket.on("bang attack", (data) => {
   const missedCard = playerHand.find(card => card.name === "Missed!");
 
   const attackingPlayer = players.find(p => p.username === data.attacker);
-  if (attackingPlayer && attackingPlayer.champion === "Slab the Killer") {
-    const missedCards = playerHand.filter(card => card.name === "Missed!");
-    if (missedCards.length >= 2) {
-      showMissedDialog(data.attacker, missedCards);
-      //pak do toho dialogu proste dej ze na tebe strili slab the killer, pouzij tam tenhle kod, a for each missed card emit use missed
-    }
+ // if (attackingPlayer && attackingPlayer.champion === "Slab the Killer") {
+ //   const missedCards = playerHand.filter(card => card.name === "Missed!");
+ //   if (missedCards.length >= 2) {
+ //     showMissedDialog(data.attacker, missedCards);
+ //     //pak do toho dialogu proste dej ze na tebe strili slab the killer, pouzij tam tenhle kod, a for each missed card emit use missed
+ //   }
 
-    missedCards.splice(1, 2);
-    missedCards.forEach(mcards => playerHand.push(mcards));
-  }
+ //  missedCards.splice(1, 2);
+ //  missedCards.forEach(mcards => playerHand.push(mcards));
+ // }
   
   if (missedCard || currentPlayer.champion === "Jourdonnais" || currentPlayer.attributes.includes("Barrel")) {
     showMissedDialog(data.attacker, missedCard);
