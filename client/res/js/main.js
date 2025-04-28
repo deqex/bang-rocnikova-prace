@@ -83,6 +83,9 @@ createRoomButton.onclick = () => {
     document.getElementById("maxPlayers").style.display = "none";
     document.getElementById("startGame").style.display = "block";
     document.getElementById("leaveRoom").style.display = "block";
+    // Hide the upper menu box as well
+    const upperMenuBox = document.querySelector('.upper-menu-box');
+    if (upperMenuBox) upperMenuBox.style.display = "none";
   } else {
     alert("bro enterni jmeno");
   }
@@ -128,23 +131,12 @@ leaveRoom.onclick = () => {
     document.getElementById("createRoomButton").style.display = "block";
     document.getElementById("switchlabel").style.display = "block";
     document.getElementById("maxPlayers").style.display = "block";
-    document.getElementById("roomInput").style.display = "block";
-    document.getElementById("enterRoom").style.display = "block";
-    document.getElementById("leaveRoom").style.display = "none";
     document.getElementById("startGame").style.display = "none";
+    document.getElementById("leaveRoom").style.display = "none";
 
-    // Reset owner, test, and any sidebar info
-    owner.innerHTML = ``;
-    test.innerHTML = ``;
-    if (document.getElementById("joinedRoomInfo")) {
-      document.getElementById("joinedRoomInfo").innerText = "";
-    }
-    if (document.getElementById("users")) {
-      document.getElementById("users").innerText = "";
-    }
-    if (document.getElementById("usersCount")) {
-      document.getElementById("usersCount").innerText = "";
-    }
+    // Show the upper menu box again
+    const upperMenuBox = document.querySelector('.upper-menu-box');
+    if (upperMenuBox) upperMenuBox.style.display = "flex";
 
     // Show available rooms again and refresh the list
     const availableRoomsElem = document.getElementById("availableRooms");
@@ -170,9 +162,12 @@ socket.on("join room", (data) => {
     document.getElementById("roomPanelWrapper").style.display = "flex";
     // Hide the menu controls (join/create) when in a room
     document.getElementById("menuControls").style.display = "none";
+    // Hide the upper menu box as well
+    const upperMenuBox = document.querySelector('.upper-menu-box');
+    if (upperMenuBox) upperMenuBox.style.display = "none";
     // Set the player limit in the panel
     if (document.getElementById("sidebarPlayerLimit") && typeof data.maxPlayers !== 'undefined') {
-      document.getElementById("sidebarPlayerLimit").innerText = data.maxPlayers;
+      document.getElementById("sidebarPlayerLimit").innerText = `Player limit: ${data.maxPlayers}`;
     }
     // Set the joined room info
     if (document.getElementById("joinedRoomInfo") && data.roomNum) {
@@ -1716,7 +1711,7 @@ function showMissedDialog(attacker, missedCard) {
             // Disable the button instead of hiding it
             barrelBtn.disabled = true;
             barrelBtn.textContent = "Barrel failed";
-            barrelBtn.style.backgroundColor = "#ccc";
+            barrelBtn.classList.add('dialog-button--secondary');
           }
         });
       }
@@ -1748,7 +1743,7 @@ function showMissedDialog(attacker, missedCard) {
             // Disable the button instead of hiding it
             passiveBtn.disabled = true;
             passiveBtn.textContent = "Passive failed";
-            passiveBtn.style.backgroundColor = "#ccc";
+            passiveBtn.classList.add('dialog-button--secondary');
           }
         });
       }

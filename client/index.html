@@ -10,27 +10,27 @@
 
 <body>
   <div class="container">
-    <div id="title">
-      <h1 id = "titleText" class="titleText">Beng!</h1>
-      <p id = "titleSubtext" class="titleSubtext">not affiliated with Bang!</p>
-    </div>
-    <div class="roomsContainer">
-      <div id="availableRooms">
-        <p>Available rooms</p>
+    <div class="upper-menu-box">
+      <div id="title">
+        <h1 id = "titleText" class="titleText">Beng!</h1>
+        <p id = "titleSubtext" class="titleSubtext">not affiliated with Bang!</p>
+      </div>
+      <div class="roomsContainer">
+        <div id="availableRooms">
+          <p>available rooms</p>
+        </div>
+      </div>
+      <p id="roomInfo" style="text-align: center;">you are not in a room </p>
+      <div id="usernameContainer">
+        <input class="generic-input" type="text" id="nameInput" placeholder="Enter username">
+        <button class="generic-menu-button" id="enterUsername">okay</button>
       </div>
     </div>
-    <p id="roomInfo" style="text-align: center;">Room: </p>
-
-    <div id="usernameContainer">
-      <input class="generic-input" type="text" id="nameInput" placeholder="Enter username">
-      <button class="generic-menu-button" id="enterUsername">Enter username</button>
-    </div>
-
     <div id="menuControls" style="position: fixed; left: 50%; bottom: 2.5rem; transform: translateX(-50%); z-index: 100;">
       <div id="menuBar" style="display: flex; flex-direction: column; align-items: stretch; background: #111; border-radius: 18px; box-shadow: 0 6px 24px rgba(0,0,0,0.28); padding: 1.3rem 2.5rem; gap: 1.1rem; min-width: 400px; max-width: 500px; width: 100%;">
         <div style="display: flex; flex-direction: row; gap: 1.1rem; width: 100%;">
           <input class="generic-input" type="text" id="roomInput" placeholder="enter room" style="flex: 1 1 0; min-width: 0; background: #fff; color: #111; border: none; outline: none; font-size: 1rem;">
-          <button class="generic-menu-button" id="enterRoom" style="background: #e53935; color: #fff; width: 160px;">enter room</button>
+          <button class="generic-menu-button" id="enterRoom" style="width: 160px;">enter room</button>
         </div>
         <div style="display: flex; flex-direction: row; gap: 2.5rem; justify-content: center; align-items: center; width: 100%; margin-top: 0.6rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -51,10 +51,10 @@
             </label>
           </div>
         </div>
-        <button id="createRoomButton" class="generic-menu-button" style="background: #e53935; color: #fff; width: 100%; margin-top: 0.8rem; font-size: 1.2rem;">create room</button>
+        <button id="createRoomButton" class="generic-menu-button" style="width: 100%; margin-top: 0.8rem; font-size: 1.2rem;">create room</button>
       </div>
     </div>
-
+  </div>
     <div id="roomPanelWrapper" style="display: none; align-items: flex-start; justify-content: center; width: 100vw; position: absolute; left: 0; top: 0; z-index: 10;">
       <div id="roomPanel" style="margin-top: 2.5rem; min-width: 340px; max-width: 420px; background: rgba(255,255,255); border-radius: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.13); padding: 2.5rem 2.2rem; display: flex; flex-direction: column; align-items: center; gap: 2.2rem; font-family: 'Comic Sans MS', cursive;">
         <div id="joinedRoomInfo" style="width: 100%; text-align: center; font-size: 1.4rem; color: #222; margin-bottom: 0.7rem; font-weight: bold;"></div>
@@ -65,13 +65,13 @@
         </div>
         <div style="width: 100%; display: flex; flex-direction: column; gap: 1.3rem;">
           <button id="startGame" class="generic-menu-button" style="width: 100%; font-size: 1.5rem;">Start game</button>
-          <button id="leaveRoom" class="generic-menu-button" style="width: 100%; background: #888; font-size: 1.5rem;">Leave room</button>
+          <button id="leaveRoom" class="generic-menu-button gray" style="width: 100%; font-size: 1.5rem;">Leave room</button>
         </div>
       </div>
     </div>
     <div id="gameArea"></div>
 
-  </div>
+  
 
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
     integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
