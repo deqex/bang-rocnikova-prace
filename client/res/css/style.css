@@ -1212,9 +1212,7 @@ body {
 }
 
 .upper-menu-box input,
-.upper-menu-box select,
-#menuBar input,
-#menuBar select {
+#menuBar input {
   font-size: 1.15rem;
   padding: 0.7rem 0.9rem;
   border-radius: 10px;
@@ -1224,6 +1222,23 @@ body {
   margin-bottom: 0.5rem;
   height: 2.6rem;
 }
+
+.upper-menu-box select,
+#menuBar select {
+  font-size: 1rem;
+  font-weight: 400;
+  padding: 0.5rem 0.8rem;
+  border-radius: 10px;
+  border: 2px solid #111;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 0.5rem;
+  height: 2.6rem;
+  background: #fff;
+  color: #111;
+  appearance: auto;
+}
+
 
 .upper-menu-box button,
 #menuBar button {
