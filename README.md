@@ -1,2 +1,3 @@
 # bang-rocnikova-prace
-https://to-do.office.com/tasks/AAMkADllOGEwYjNmLTVmOWEtNGM5Mi1hMzNiLTk0YjkwZTVhMDQ3YgAuAAAAAADe_qCaefwwSZoO3TKiY1UFAQA1JDFkSnnfRpuhm2F_nTsKAAJZy_UDAAA=
+
+práci lze spustit pomocí příkazu 'npm start'
