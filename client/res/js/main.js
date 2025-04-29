@@ -742,7 +742,7 @@ function renderPlayerCards(gameData) {
     // Create card content
     playerCard.innerHTML = `
       <div class="player-name">${displayName}${isCurrentTurn ? ' (Turn)' : ''}</div>
-      <div class="player-role ${player.role.toLowerCase()}">${roleDisplay}</div>
+      <div class="player-role ${(isCurrentPlayer || player.role === "Sheriff" || player.hp <= 0) ? player.role.toLowerCase() : 'hidden'}">${roleDisplay}</div>
       <div class="player-stats">
         <div>HP: ${player.hp}/${player.maxHP}</div>
         <div>Cards: ${cardCount}</div>
